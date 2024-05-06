@@ -11,12 +11,29 @@ import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import Typography from '@mui/material/Typography';
 import Container from '@mui/material/Container';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
-
+import {IconButton} from "@mui/material";
+import axios from "axios";
 
 const defaultTheme = createTheme();
 
 export default function SignUp() {
-    // Handle the form submission
+    // Storage for selected image
+    const [selectedImage, setSelectedImage] = React.useState("/images/example.jpg");
+
+    // Handle the image change
+    const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        if (event.target && event.target.files && event.target.files[0]) {
+            const reader = new FileReader();
+            reader.onload = e => {
+                if (e.target) {
+                    setSelectedImage(e.target.result as string);
+                }
+            };
+            reader.readAsDataURL(event.target.files[0]);
+        }
+    };
+
+    // Handle the register form submission
     const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
@@ -29,15 +46,8 @@ export default function SignUp() {
             password: data.get('password')
         };
 
-        fetch(`${API_HOST}/users/register`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(user)
-        })
-            .then(response => response.json())
-            .then(data => console.log(data))
+        axios.post(`${API_HOST}/users/register`, user)
+            .then(response => console.log(response.data))
             .catch(error => console.error('Error:', error));
     };
 
@@ -45,7 +55,7 @@ export default function SignUp() {
     return (
         <ThemeProvider theme={defaultTheme}>
             <Container component="main" maxWidth="xs">
-                <CssBaseline />
+                <CssBaseline/>
                 <Box
                     sx={{
                         marginTop: 8,
@@ -54,13 +64,37 @@ export default function SignUp() {
                         alignItems: 'center',
                     }}
                 >
-                    <Avatar sx={{ m: 1, bgcolor: 'secondary.main' }}>
-                        <LockOutlinedIcon />
+                    <Avatar sx={{m: 1, bgcolor: 'secondary.main'}}>
+                        <LockOutlinedIcon/>
                     </Avatar>
                     <Typography component="h1" variant="h5">
                         Sign up
                     </Typography>
-                    <Box component="form" noValidate onSubmit={handleSubmit} sx={{ mt: 3 }}>
+
+                    {/*profile picture selector*/}
+                    <Box component="form" noValidate onSubmit={handleSubmit} sx={{mt: 3}}>
+                        <input
+                            accept="image/*"
+                            style={{display: 'none'}}
+                            id="contained-button-file"
+                            multiple
+                            type="file"
+                            onChange={handleImageChange}
+                        />
+                        <label htmlFor="contained-button-file">
+                            <IconButton component="span">
+                                <Avatar
+                                    src={selectedImage}
+                                    style={{
+                                        margin: "10px",
+                                        width: "60px",
+                                        height: "60px",
+                                    }}
+                                />
+                            </IconButton>
+                        </label>
+
+                        {/*begin register details form*/}
                         <Grid container spacing={2}>
                             <Grid item xs={12} sm={6}>
                                 <TextField
@@ -105,11 +139,13 @@ export default function SignUp() {
                                 />
                             </Grid>
                         </Grid>
+
+                        {/*sign up button*/}
                         <Button
                             type="submit"
                             fullWidth
                             variant="contained"
-                            sx={{ mt: 3, mb: 2 }}
+                            sx={{mt: 3, mb: 2}}
                         >
                             Sign Up
                         </Button>
