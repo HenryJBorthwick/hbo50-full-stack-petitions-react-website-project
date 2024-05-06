@@ -13,12 +13,15 @@ import Container from '@mui/material/Container';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 import {IconButton} from "@mui/material";
 import axios from "axios";
+import {userUserStore} from "../store";
 
 const defaultTheme = createTheme();
 
 export default function SignUp() {
     // Storage for selected image
     const [selectedImage, setSelectedImage] = React.useState("/images/example.jpg");
+
+    const setUser = userUserStore(state => state.setUser);
 
     // Handle the image change
     const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -46,8 +49,17 @@ export default function SignUp() {
             password: data.get('password')
         };
 
+        // Register the user
         axios.post(`${API_HOST}/users/register`, user)
             .then(response => console.log(response.data))
+            .catch(error => console.error('Error:', error));
+
+        // Log the user in
+        axios.post(`${API_HOST}/users/login`, user)
+            .then(response => {
+                // Set and store the user id and token locally
+                setUser(response.data);
+            })
             .catch(error => console.error('Error:', error));
     };
 
