@@ -15,4 +15,4 @@ const useStore = create<Index>(set => ({
     },
 }));
 
-export const userUserStore = useStore;
+export const useUserStore = useStore;

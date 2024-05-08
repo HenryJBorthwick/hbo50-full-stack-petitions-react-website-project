@@ -1,66 +1,71 @@
 import * as React from 'react';
 import { API_HOST } from '../../config';
-import Avatar from '@mui/material/Avatar';
-import Button from '@mui/material/Button';
-import CssBaseline from '@mui/material/CssBaseline';
-import TextField from '@mui/material/TextField';
-import Link from '@mui/material/Link';
-import Grid from '@mui/material/Grid';
-import Box from '@mui/material/Box';
+import { Avatar, Button, CssBaseline, TextField, Link, Grid, Box, Container, IconButton, Typography, createTheme, ThemeProvider } from '@mui/material';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
-import Typography from '@mui/material/Typography';
-import Container from '@mui/material/Container';
-import { createTheme, ThemeProvider } from '@mui/material/styles';
-import {IconButton} from "@mui/material";
 import axios from "axios";
-import {userUserStore} from "../store";
+import { useUserStore } from "../store";
 
 const defaultTheme = createTheme();
 
 export default function SignUp() {
-    // Storage for selected image
     const [selectedImage, setSelectedImage] = React.useState("/images/example.jpg");
+    const setUser = useUserStore(state => state.setUser);
 
-    const setUser = userUserStore(state => state.setUser);
-
-    // Handle the image change
+    // Handle the image change for profile picture
     const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        if (event.target && event.target.files && event.target.files[0]) {
+        if (event.target.files && event.target.files[0]) {
             const reader = new FileReader();
-            reader.onload = e => {
-                if (e.target) {
-                    setSelectedImage(e.target.result as string);
-                }
-            };
+            reader.onload = e => setSelectedImage(e.target?.result as string);
             reader.readAsDataURL(event.target.files[0]);
         }
     };
 
-    // Handle the register form submission
-    const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-
         const data = new FormData(event.currentTarget);
 
         const user = {
             email: data.get('email'),
             firstName: data.get('firstName'),
             lastName: data.get('lastName'),
-            password: data.get('password')
+            password: data.get('password'),
+            imageUrl: selectedImage
         };
 
-        // Register the user
-        axios.post(`${API_HOST}/users/register`, user)
-            .then(response => console.log(response.data))
-            .catch(error => console.error('Error:', error));
+        try {
+            // Register the user
+            const registerResponse = await axios.post(`${API_HOST}/users/register`, user);
+            console.log(registerResponse.data);
 
-        // Log the user in
-        axios.post(`${API_HOST}/users/login`, user)
-            .then(response => {
-                // Set and store the user id and token locally
-                setUser(response.data);
-            })
-            .catch(error => console.error('Error:', error));
+            // Login the user
+            const loginResponse = await axios.post(`${API_HOST}/users/login`, user);
+            console.log(loginResponse.data);
+
+            // Store the user ID and Token in the store
+            setUser(loginResponse.data);
+
+            // Determine the content type based on the file extension
+            let contentType;
+            if (selectedImage.endsWith('.png')) {
+                contentType = 'image/png';
+            } else if (selectedImage.endsWith('.jpg') || selectedImage.endsWith('.jpeg')) {
+                contentType = 'image/jpeg';
+            } else if (selectedImage.endsWith('.gif')) {
+                contentType = 'image/gif';
+            }
+
+            // Upload the user image
+            const imageResponse = await axios.put(`${API_HOST}/users/${loginResponse.data.userId}/image`, user.imageUrl, {
+                headers: {
+                    'X-Authorization': `${loginResponse.data.token}`,
+                    'Content-Type': contentType
+                }
+            });
+            console.log(imageResponse);
+
+        } catch (error) {
+            console.error('Error:', error);
+        }
     };
 
     // Begin the component
