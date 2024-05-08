@@ -1,8 +1,23 @@
 import * as React from 'react';
 import { API_HOST } from '../../config';
-import { Avatar, Button, CssBaseline, TextField, Link, Grid, Box, Container, IconButton, Typography, createTheme, ThemeProvider } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
+import {
+    Avatar,
+    Button,
+    CssBaseline,
+    TextField,
+    Link,
+    Grid,
+    Box,
+    Container,
+    IconButton,
+    Typography,
+    createTheme,
+    ThemeProvider,
+    Alert
+} from '@mui/material';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
-import axios from "axios";
+import axios, {AxiosError} from "axios";
 import { useUserStore } from "../store";
 
 const defaultTheme = createTheme();
@@ -10,6 +25,8 @@ const defaultTheme = createTheme();
 export default function SignUp() {
     const [selectedImage, setSelectedImage] = React.useState("/images/example.jpg");
     const setUser = useUserStore(state => state.setUser);
+    const [error, setError] = React.useState('');
+    const navigate = useNavigate();
 
     // Handle the image change for profile picture
     const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -63,8 +80,14 @@ export default function SignUp() {
             });
             console.log(imageResponse);
 
-        } catch (error) {
+            // Redirect to main page on successful login
+            navigate('/main');
+
+        } catch (error: unknown) {
             console.error('Error:', error);
+            if (error instanceof AxiosError) {
+                setError(error.response?.data?.message || 'An unexpected error occurred. Please try again.');
+            }
         }
     };
 
@@ -166,6 +189,11 @@ export default function SignUp() {
                         >
                             Sign Up
                         </Button>
+
+                        {/*error messages*/}
+                        {error && <Alert severity="error">{error}</Alert>}
+
+                        {/*sign in link*/}
                         <Grid container justifyContent="flex-end">
                             <Grid item>
                                 <Link href="#" variant="body2">
