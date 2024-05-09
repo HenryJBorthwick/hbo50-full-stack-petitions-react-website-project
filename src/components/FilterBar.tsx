@@ -7,9 +7,11 @@ interface FilterBarProps {
     setSelectedCategories: (categories: number[]) => void;
     maxCost: number;
     setMaxCost: (cost: number) => void;
+    sortBy: string;
+    setSortBy: (sort: string) => void;
 }
 
-const FilterBar: React.FC<FilterBarProps> = ({ categories, selectedCategories, setSelectedCategories, maxCost, setMaxCost }) => {
+const FilterBar: React.FC<FilterBarProps> = ({ categories, selectedCategories, setSelectedCategories, maxCost, setMaxCost, sortBy, setSortBy }) => {
     const handleCategoryChange = (event: SelectChangeEvent<number[]>) => {
         const value = event.target.value as number[];
         setSelectedCategories(value);
@@ -17,6 +19,10 @@ const FilterBar: React.FC<FilterBarProps> = ({ categories, selectedCategories, s
 
     const handleCostChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         setMaxCost(Number(event.target.value));
+    };
+
+    const handleSortChange = (event: SelectChangeEvent<string>) => {
+        setSortBy(event.target.value);
     };
 
     return (
@@ -46,6 +52,21 @@ const FilterBar: React.FC<FilterBarProps> = ({ categories, selectedCategories, s
                 onChange={handleCostChange}
                 sx={{ width: 200 }}
             />
+            <FormControl variant="outlined" sx={{ minWidth: 200 }}>
+                <InputLabel>Sort By</InputLabel>
+                <Select
+                    value={sortBy}
+                    onChange={handleSortChange}
+                    label="Sort By"
+                >
+                    <MenuItem value="CREATED_ASC">Creation Date (Oldest to Newest)</MenuItem>
+                    <MenuItem value="CREATED_DESC">Creation Date (Newest to Oldest)</MenuItem>
+                    <MenuItem value="ALPHABETICAL_ASC">Title (A-Z)</MenuItem>
+                    <MenuItem value="ALPHABETICAL_DESC">Title (Z-A)</MenuItem>
+                    <MenuItem value="COST_ASC">Supporting Cost (Low to High)</MenuItem>
+                    <MenuItem value="COST_DESC">Supporting Cost (High to Low)</MenuItem>
+                </Select>
+            </FormControl>
         </Box>
     );
 };
