@@ -97,7 +97,7 @@ const Petitions: React.FC = () => {
                 }
 
                 const petitionsResponse = await axios.get(`${API_HOST}/petitions`, { params });
-                setTotalPetitions(petitionsResponse.data.count);  // Set the total number of petitions
+                setTotalPetitions(petitionsResponse.data.count);
                 const petitionsWithDetails = await Promise.all(
                     petitionsResponse.data.petitions.map(async (petition: Petition) => {
                         const detailedPetition = await fetchPetitionDetails(petition);
@@ -125,12 +125,11 @@ const Petitions: React.FC = () => {
 
     const handlePageSizeChange = (event: SelectChangeEvent<number>) => {
         setPageSize(event.target.value as number);
-        setCurrentPage(1);
+        setCurrentPage(1); // Reset to the first page whenever page size changes
     };
 
     const isFirstPage = currentPage === 1;
-    const lastPage = Math.ceil(totalPetitions / pageSize);
-    const isLastPage = currentPage === lastPage;
+    const isLastPage = currentPage === Math.ceil(totalPetitions / pageSize);
 
     return (
         <Container maxWidth="lg">
@@ -210,7 +209,7 @@ const Petitions: React.FC = () => {
                     </Select>
                 </FormControl>
                 <Pagination
-                    count={lastPage}
+                    count={Math.ceil(totalPetitions / pageSize)}
                     page={currentPage}
                     onChange={handlePageChange}
                     color="primary"
@@ -223,7 +222,7 @@ const Petitions: React.FC = () => {
                     You are on the first page.
                 </Typography>
             )}
-            {isLastPage && totalPetitions > 0 && (
+            {isLastPage && (
                 <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ marginTop: 1 }}>
                     You are on the last page.
                 </Typography>
