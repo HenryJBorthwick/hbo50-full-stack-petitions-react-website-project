@@ -97,10 +97,9 @@ const Petitions: React.FC = () => {
                 }
 
                 const petitionsResponse = await axios.get(`${API_HOST}/petitions`, { params });
-                const totalCount = petitionsResponse.data.length;
-                setTotalPetitions(totalCount);  // Set the total number of petitions based on response length
+                setTotalPetitions(petitionsResponse.data.count);  // Set the total number of petitions
                 const petitionsWithDetails = await Promise.all(
-                    petitionsResponse.data.map(async (petition: Petition) => {
+                    petitionsResponse.data.petitions.map(async (petition: Petition) => {
                         const detailedPetition = await fetchPetitionDetails(petition);
                         try {
                             const imageResponse = await axios.get(`${API_HOST}/users/${detailedPetition.ownerId}/image`, { responseType: 'blob' });
