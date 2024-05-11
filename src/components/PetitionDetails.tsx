@@ -14,7 +14,8 @@ import {
     ListItemAvatar,
     ListItemText,
     Divider,
-    Button
+    Button,
+    Grid
 } from '@mui/material';
 import { API_HOST } from '../../config';
 
@@ -49,6 +50,14 @@ interface Petition {
     numberOfSupporters: number;
     moneyRaised: number;
     supportTiers: SupportTier[];
+    categoryId: number;
+    categoryName?: string;
+    supportingCost?: number;
+}
+
+interface Category {
+    categoryId: number;
+    name: string;
 }
 
 const PetitionDetails: React.FC = () => {
@@ -63,7 +72,6 @@ const PetitionDetails: React.FC = () => {
                 const response = await axios.get(`${API_HOST}/petitions/${id}`);
                 const petitionData: Petition = response.data;
 
-                // Fetch owner's profile image
                 try {
                     const ownerImageResponse = await axios.get(`${API_HOST}/users/${petitionData.ownerId}/image`, { responseType: 'blob' });
                     petitionData.ownerProfileImage = URL.createObjectURL(ownerImageResponse.data);
@@ -73,14 +81,11 @@ const PetitionDetails: React.FC = () => {
 
                 setPetition(petitionData);
 
-                // Fetch supporters
                 const supportersResponse = await axios.get(`${API_HOST}/petitions/${id}/supporters`);
                 const supportersData: Supporter[] = supportersResponse.data;
 
-                // Fetch and map supporters' profile images and support tier titles
                 const enrichedSupporters = await Promise.all(
                     supportersData.map(async supporter => {
-                        // Fetch supporter's profile image
                         try {
                             const supporterImageResponse = await axios.get(`${API_HOST}/users/${supporter.supporterId}/image`, { responseType: 'blob' });
                             supporter.supporterProfileImage = URL.createObjectURL(supporterImageResponse.data);
@@ -88,7 +93,6 @@ const PetitionDetails: React.FC = () => {
                             supporter.supporterProfileImage = '/images/default-avatar.png';
                         }
 
-                        // Map support tier title
                         const tier = petitionData.supportTiers.find(tier => tier.supportTierId === supporter.supportTierId);
                         supporter.supportTierTitle = tier ? tier.title : 'Unknown Tier';
 
@@ -98,15 +102,40 @@ const PetitionDetails: React.FC = () => {
 
                 setSupporters(enrichedSupporters);
 
-                // Fetch similar petitions
-                const similarResponse = await axios.get(`${API_HOST}/petitions`, {
-                    params: {
-                        categoryIds: response.data.categoryId,
-                        ownerId: response.data.ownerId,
-                        count: 5
-                    }
+                // Fetch all categories
+                const categoriesResponse = await axios.get(`${API_HOST}/petitions/categories`);
+                const categoriesData: Category[] = categoriesResponse.data;
+
+                // Fetch petitions with the same categoryId
+                const categoryResponse = await axios.get(`${API_HOST}/petitions`, {
+                    params: { categoryIds: petitionData.categoryId }
                 });
-                setSimilarPetitions(similarResponse.data.petitions);
+                const similarByCategory = categoryResponse.data.petitions;
+
+                // Fetch petitions with the same ownerId
+                const ownerResponse = await axios.get(`${API_HOST}/petitions`, {
+                    params: { ownerId: petitionData.ownerId }
+                });
+                const similarByOwner = ownerResponse.data.petitions;
+
+                // Combine and filter out the current petition
+                let combinedSimilarPetitions = [
+                    ...similarByCategory,
+                    ...similarByOwner
+                ].filter(
+                    (similarPetition, index, self) =>
+                        similarPetition.petitionId !== petitionData.petitionId &&
+                        index === self.findIndex(p => p.petitionId === similarPetition.petitionId)
+                );
+
+                // Map category names for similar petitions
+                combinedSimilarPetitions = combinedSimilarPetitions.map(similarPetition => {
+                    const category = categoriesData.find(cat => cat.categoryId === similarPetition.categoryId);
+                    similarPetition.categoryName = category ? category.name : 'Unknown Category';
+                    return similarPetition;
+                });
+
+                setSimilarPetitions(combinedSimilarPetitions);
             } catch (error) {
                 console.error('Error fetching petition details:', error);
             }
@@ -208,22 +237,50 @@ const PetitionDetails: React.FC = () => {
                 <Typography variant="h6" gutterBottom>
                     Similar Petitions
                 </Typography>
-                <Box display="flex" flexDirection="column" gap={2}>
+                <Grid container spacing={2}>
                     {similarPetitions.map(similarPetition => (
-                        <Card key={similarPetition.petitionId}>
-                            <CardContent>
-                                <Typography variant="h6">{similarPetition.title}</Typography>
-                                <Button
-                                    variant="outlined"
-                                    color="primary"
-                                    href={`/petitions/${similarPetition.petitionId}`}
-                                >
-                                    View Petition
-                                </Button>
-                            </CardContent>
-                        </Card>
+                        <Grid item xs={12} sm={6} md={4} key={similarPetition.petitionId}>
+                            <Card>
+                                <CardMedia
+                                    component="img"
+                                    height="140"
+                                    image={`${API_HOST}/petitions/${similarPetition.petitionId}/image`}
+                                    alt="Similar petition hero image"
+                                />
+                                <CardContent>
+                                    <Typography variant="h6" component="div">
+                                        {similarPetition.title}
+                                    </Typography>
+                                    <Typography variant="body2" color="textSecondary">
+                                        Created on {new Date(similarPetition.creationDate).toLocaleDateString()}
+                                    </Typography>
+                                    <Box display="flex" alignItems="center" mt={2}>
+                                        <Avatar
+                                            src={`${API_HOST}/users/${similarPetition.ownerId}/image`}
+                                            alt={`${similarPetition.ownerFirstName} ${similarPetition.ownerLastName}`}
+                                        />
+                                        <Typography variant="body2" ml={2}>
+                                            {similarPetition.ownerFirstName} {similarPetition.ownerLastName}
+                                        </Typography>
+                                    </Box>
+                                    <Typography variant="body2" color="textSecondary" gutterBottom>
+                                        Category: {similarPetition.categoryName}
+                                    </Typography>
+                                    <Typography variant="body2" color="textSecondary" gutterBottom>
+                                        Supporting Cost: ${similarPetition.supportingCost}
+                                    </Typography>
+                                    <Button
+                                        variant="outlined"
+                                        color="primary"
+                                        href={`/petitions/${similarPetition.petitionId}`}
+                                    >
+                                        View Petition
+                                    </Button>
+                                </CardContent>
+                            </Card>
+                        </Grid>
                     ))}
-                </Box>
+                </Grid>
             </Box>
         </Container>
     );
