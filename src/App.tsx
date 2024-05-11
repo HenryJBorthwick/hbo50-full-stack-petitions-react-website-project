@@ -3,6 +3,7 @@ import {BrowserRouter as Router, Route, Routes} from 'react-router-dom';
 import Register from './components/Register';
 import MainPage from './components/MainPage';
 import Petitions from './components/Petitions.tsx';
+import PetitionDetails from './components/PetitionDetails.tsx';
 
 function App() {
     return (
@@ -13,6 +14,7 @@ function App() {
                         <Route path="/register" element={<Register/>}/>
                         <Route path={"/main"} element={<MainPage/>}/>
                         <Route path={"/petitions"} element={<Petitions/>}/>
+                        <Route path={"petitions/:id"} element={<PetitionDetails/>}/>
                     </Routes>
                 </div>
             </Router>

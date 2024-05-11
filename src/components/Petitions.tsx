@@ -14,7 +14,8 @@ import {
     MenuItem,
     FormControl,
     InputLabel,
-    SelectChangeEvent
+    SelectChangeEvent,
+    Button
 } from '@mui/material';
 import dayjs from 'dayjs';
 import { API_HOST } from '../../config';
@@ -183,9 +184,12 @@ const Petitions: React.FC = () => {
                                             </Typography>
                                         </Box>
                                     </CardContent>
-                                </Card>
-                            </Grid>
-                        ))
+                                    <Button variant="outlined" color="primary" href={`/petitions/${petition.petitionId}`}>
+                                        View Details
+                                    </Button>
+                            </Card>
+                        </Grid>
+                    ))
                     ) : (
                         <Grid item xs={12}>
                             <Typography variant="h6" color="text.secondary" textAlign="center">
@@ -205,6 +209,7 @@ const Petitions: React.FC = () => {
                     >
                         {[5, 10].map(size => (
                             <MenuItem key={size} value={size}>{size}</MenuItem>
+
                         ))}
                     </Select>
                 </FormControl>
