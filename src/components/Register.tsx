@@ -19,6 +19,7 @@ import {
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import axios, { AxiosError } from "axios";
 import { useUserStore } from "../store";
+import NavBar from './NavBar.tsx';
 
 const defaultTheme = createTheme();
 
@@ -112,7 +113,8 @@ export default function SignUp() {
 
     return (
         <ThemeProvider theme={defaultTheme}>
-            <Container component="main" maxWidth="xs">
+            <NavBar /> {/* Add the NavBar at the top */}
+            <Container component="main" maxWidth="xs" sx={{ marginTop: 8 }}> {/* Add marginTop to prevent overlap */}
                 <CssBaseline />
                 <Box
                     sx={{

@@ -9,6 +9,7 @@ import axios from 'axios';
 import { API_HOST } from '../../config';
 import { useNavigate } from 'react-router-dom';
 import { useUserStore } from '../store';
+import NavBar from './NavBar';
 
 const theme = createTheme();
 
@@ -69,7 +70,8 @@ export default function SignIn() {
 
     return (
         <ThemeProvider theme={theme}>
-            <Container component="main" maxWidth="xs">
+            <NavBar /> {/* Add the NavBar at the top */}
+            <Container component="main" maxWidth="xs" sx={{ marginTop: 8 }}> {/* Add marginTop to prevent overlap */}
                 <CssBaseline />
                 <Box
                     sx={{

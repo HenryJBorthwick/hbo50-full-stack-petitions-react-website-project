@@ -21,6 +21,7 @@ import dayjs from 'dayjs';
 import { API_HOST } from '../../config';
 import SearchBar from './SearchBar';
 import FilterBar from './FilterBar';
+import NavBar from './NavBar';
 
 interface Petition {
     petitionId: number;
@@ -133,106 +134,108 @@ const Petitions: React.FC = () => {
     const isLastPage = currentPage === Math.ceil(totalPetitions / pageSize);
 
     return (
-        <Container maxWidth="lg">
-            <Box sx={{ position: 'sticky', top: 0, zIndex: 1, backgroundColor: 'white', padding: 3, borderRadius: 1, boxShadow: 3 }}>
-                <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
-                <FilterBar
-                    categories={categories}
-                    selectedCategories={selectedCategories}
-                    setSelectedCategories={setSelectedCategories}
-                    maxCost={maxCost}
-                    setMaxCost={setMaxCost}
-                    sortBy={sortBy}
-                    setSortBy={setSortBy}
-                />
-            </Box>
-            <Box sx={{ marginTop: 3 }}>
-                <Grid container spacing={2} sx={{ minHeight: '60vh' }}>
-                    {petitions.length > 0 ? (
-                        petitions.map((petition) => (
-                            <Grid item key={petition.petitionId} xs={12} sm={6} md={4}>
-                                <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                                    <CardMedia
-                                        component="img"
-                                        height="140"
-                                        image={`${API_HOST}/petitions/${petition.petitionId}/image`}
-                                        alt="Petition image"
-                                    />
-                                    <CardContent sx={{ flexGrow: 1 }}>
-                                        <Box display="flex" alignItems="center" mb={2}>
-                                            <Avatar
-                                                src={petition.ownerProfileImage}
-                                                alt={`${petition.ownerFirstName} ${petition.ownerLastName}`}
-                                                sx={{ mr: 2 }}
-                                            />
-                                            <Typography variant="body1" noWrap>
-                                                {petition.ownerFirstName} {petition.ownerLastName}
+        <>
+            <NavBar /> {/* Add the NavBar at the top */}
+            <Container maxWidth="lg" sx={{ marginTop: 8 }}> {/* Add margin top to avoid overlap */}
+                <Box sx={{ position: 'sticky', top: 0, zIndex: 1, backgroundColor: 'white', padding: 3, borderRadius: 1, boxShadow: 3 }}>
+                    <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
+                    <FilterBar
+                        categories={categories}
+                        selectedCategories={selectedCategories}
+                        setSelectedCategories={setSelectedCategories}
+                        maxCost={maxCost}
+                        setMaxCost={setMaxCost}
+                        sortBy={sortBy}
+                        setSortBy={setSortBy}
+                    />
+                </Box>
+                <Box sx={{ marginTop: 3 }}>
+                    <Grid container spacing={2} sx={{ minHeight: '60vh' }}>
+                        {petitions.length > 0 ? (
+                            petitions.map((petition) => (
+                                <Grid item key={petition.petitionId} xs={12} sm={6} md={4}>
+                                    <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                                        <CardMedia
+                                            component="img"
+                                            height="140"
+                                            image={`${API_HOST}/petitions/${petition.petitionId}/image`}
+                                            alt="Petition image"
+                                        />
+                                        <CardContent sx={{ flexGrow: 1 }}>
+                                            <Box display="flex" alignItems="center" mb={2}>
+                                                <Avatar
+                                                    src={petition.ownerProfileImage}
+                                                    alt={`${petition.ownerFirstName} ${petition.ownerLastName}`}
+                                                    sx={{ mr: 2 }}
+                                                />
+                                                <Typography variant="body1" noWrap>
+                                                    {petition.ownerFirstName} {petition.ownerLastName}
+                                                </Typography>
+                                            </Box>
+                                            <Typography gutterBottom variant="h5" component="div" noWrap>
+                                                {petition.title}
                                             </Typography>
-                                        </Box>
-                                        <Typography gutterBottom variant="h5" component="div" noWrap>
-                                            {petition.title}
-                                        </Typography>
-                                        <Box sx={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                            <Typography variant="body2" color="text.secondary">
-                                                Category: {categories[petition.categoryId] || 'Loading...'}
-                                            </Typography>
-                                            <Typography variant="body2" color="text.secondary">
-                                                Creation Date: {dayjs(petition.creationDate).format('DD/MM/YYYY')}
-                                            </Typography>
-                                            <Typography variant="body2" color="text.secondary">
-                                                Supporting Cost: ${petition.supportingCost}
-                                            </Typography>
-                                        </Box>
-                                    </CardContent>
-                                    <Button variant="outlined" color="primary" href={`/petitions/${petition.petitionId}`}>
-                                        View Details
-                                    </Button>
-                            </Card>
-                        </Grid>
-                    ))
-                    ) : (
-                        <Grid item xs={12}>
-                            <Typography variant="h6" color="text.secondary" textAlign="center">
-                                No petitions found.
-                            </Typography>
-                        </Grid>
-                    )}
-                </Grid>
-            </Box>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 3 }}>
-                <FormControl variant="outlined" sx={{ minWidth: 120 }}>
-                    <InputLabel>Page Size</InputLabel>
-                    <Select
-                        value={pageSize}
-                        onChange={handlePageSizeChange}
-                        label="Page Size"
-                    >
-                        {[5, 10].map(size => (
-                            <MenuItem key={size} value={size}>{size}</MenuItem>
-
-                        ))}
-                    </Select>
-                </FormControl>
-                <Pagination
-                    count={Math.ceil(totalPetitions / pageSize)}
-                    page={currentPage}
-                    onChange={handlePageChange}
-                    color="primary"
-                    showFirstButton
-                    showLastButton
-                />
-            </Box>
-            {isFirstPage && (
-                <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ marginTop: 1 }}>
-                    You are on the first page.
-                </Typography>
-            )}
-            {isLastPage && (
-                <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ marginTop: 1 }}>
-                    You are on the last page.
-                </Typography>
-            )}
-        </Container>
+                                            <Box sx={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                <Typography variant="body2" color="text.secondary">
+                                                    Category: {categories[petition.categoryId] || 'Loading...'}
+                                                </Typography>
+                                                <Typography variant="body2" color="text.secondary">
+                                                    Creation Date: {dayjs(petition.creationDate).format('DD/MM/YYYY')}
+                                                </Typography>
+                                                <Typography variant="body2" color="text.secondary">
+                                                    Supporting Cost: ${petition.supportingCost}
+                                                </Typography>
+                                            </Box>
+                                        </CardContent>
+                                        <Button variant="outlined" color="primary" href={`/petitions/${petition.petitionId}`}>
+                                            View Details
+                                        </Button>
+                                    </Card>
+                                </Grid>
+                            ))
+                        ) : (
+                            <Grid item xs={12}>
+                                <Typography variant="h6" color="text.secondary" textAlign="center">
+                                    No petitions found.
+                                </Typography>
+                            </Grid>
+                        )}
+                    </Grid>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 3 }}>
+                    <FormControl variant="outlined" sx={{ minWidth: 120 }}>
+                        <InputLabel>Page Size</InputLabel>
+                        <Select
+                            value={pageSize}
+                            onChange={handlePageSizeChange}
+                            label="Page Size"
+                        >
+                            {[5, 10].map(size => (
+                                <MenuItem key={size} value={size}>{size}</MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
+                    <Pagination
+                        count={Math.ceil(totalPetitions / pageSize)}
+                        page={currentPage}
+                        onChange={handlePageChange}
+                        color="primary"
+                        showFirstButton
+                        showLastButton
+                    />
+                </Box>
+                {isFirstPage && (
+                    <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ marginTop: 1 }}>
+                        You are on the first page.
+                    </Typography>
+                )}
+                {isLastPage && (
+                    <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ marginTop: 1 }}>
+                        You are on the last page.
+                    </Typography>
+                )}
+            </Container>
+        </>
     );
 };
 
