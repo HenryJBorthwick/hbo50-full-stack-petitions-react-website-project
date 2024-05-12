@@ -17,15 +17,15 @@ import {
     Alert
 } from '@mui/material';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
-import axios, {AxiosError} from "axios";
+import axios, { AxiosError } from "axios";
 import { useUserStore } from "../store";
 
 const defaultTheme = createTheme();
 
 export default function SignUp() {
-    const [selectedImage, setSelectedImage] = React.useState("/images/example.jpg");
+    const [selectedImage, setSelectedImage] = React.useState<string | null>(null);
     const setUser = useUserStore(state => state.setUser);
-    const [error, setError] = React.useState('');
+    const [error, setError] = React.useState<string | null>(null);
     const navigate = useNavigate();
 
     // Handle the image change for profile picture
@@ -45,8 +45,7 @@ export default function SignUp() {
             email: data.get('email'),
             firstName: data.get('firstName'),
             lastName: data.get('lastName'),
-            password: data.get('password'),
-            imageUrl: selectedImage
+            password: data.get('password')
         };
 
         try {
@@ -55,47 +54,66 @@ export default function SignUp() {
             console.log(registerResponse.data);
 
             // Login the user
-            const loginResponse = await axios.post(`${API_HOST}/users/login`, user);
+            const loginResponse = await axios.post(`${API_HOST}/users/login`, {
+                email: user.email,
+                password: user.password
+            });
             console.log(loginResponse.data);
 
             // Store the user ID and Token in the store
-            setUser(loginResponse.data);
+            setUser({ id: loginResponse.data.userId, token: loginResponse.data.token });
 
-            // Determine the content type based on the file extension
-            let contentType;
-            if (selectedImage.endsWith('.png')) {
-                contentType = 'image/png';
-            } else if (selectedImage.endsWith('.jpg') || selectedImage.endsWith('.jpeg')) {
-                contentType = 'image/jpeg';
-            } else if (selectedImage.endsWith('.gif')) {
-                contentType = 'image/gif';
+            if (selectedImage) {
+                // Determine the content type based on the file extension
+                let contentType = '';
+                if (selectedImage.endsWith('.png')) {
+                    contentType = 'image/png';
+                } else if (selectedImage.endsWith('.jpg') || selectedImage.endsWith('.jpeg')) {
+                    contentType = 'image/jpeg';
+                } else if (selectedImage.endsWith('.gif')) {
+                    contentType = 'image/gif';
+                }
+
+                // Upload the user image
+                const imageBlob = await fetch(selectedImage).then(res => res.blob());
+                const imageResponse = await axios.put(`${API_HOST}/users/${loginResponse.data.userId}/image`, imageBlob, {
+                    headers: {
+                        'X-Authorization': `${loginResponse.data.token}`,
+                        'Content-Type': contentType
+                    }
+                });
+                console.log(imageResponse);
             }
 
-            // Upload the user image
-            const imageResponse = await axios.put(`${API_HOST}/users/${loginResponse.data.userId}/image`, user.imageUrl, {
-                headers: {
-                    'X-Authorization': `${loginResponse.data.token}`,
-                    'Content-Type': contentType
-                }
-            });
-            console.log(imageResponse);
-
-            // Redirect to main page on successful login
-            navigate('/main');
+            // Redirect to petitions page on successful registration
+            navigate('/petitions');
 
         } catch (error: unknown) {
             console.error('Error:', error);
             if (error instanceof AxiosError) {
-                setError(error.response?.data?.message || 'An unexpected error occurred. Please try again.');
+                switch (error.response?.status) {
+                    case 400:
+                        setError('Invalid information. Please check your input.');
+                        break;
+                    case 403:
+                        setError('Email already in use. Please use a different email.');
+                        break;
+                    case 500:
+                        setError('Internal server error. Please try again later.');
+                        break;
+                    default:
+                        setError('An unexpected error occurred. Please try again.');
+                }
+            } else {
+                setError('An unexpected error occurred. Please try again.');
             }
         }
     };
 
-    // Begin the component
     return (
         <ThemeProvider theme={defaultTheme}>
             <Container component="main" maxWidth="xs">
-                <CssBaseline/>
+                <CssBaseline />
                 <Box
                     sx={{
                         marginTop: 8,
@@ -104,27 +122,25 @@ export default function SignUp() {
                         alignItems: 'center',
                     }}
                 >
-                    <Avatar sx={{m: 1, bgcolor: 'secondary.main'}}>
-                        <LockOutlinedIcon/>
+                    <Avatar sx={{ m: 1, bgcolor: 'secondary.main' }}>
+                        <LockOutlinedIcon />
                     </Avatar>
                     <Typography component="h1" variant="h5">
-                        Sign up
+                        Register
                     </Typography>
 
-                    {/*profile picture selector*/}
-                    <Box component="form" noValidate onSubmit={handleSubmit} sx={{mt: 3}}>
+                    <Box component="form" noValidate onSubmit={handleSubmit} sx={{ mt: 3 }}>
                         <input
                             accept="image/*"
-                            style={{display: 'none'}}
+                            style={{ display: 'none' }}
                             id="contained-button-file"
-                            multiple
                             type="file"
                             onChange={handleImageChange}
                         />
                         <label htmlFor="contained-button-file">
                             <IconButton component="span">
                                 <Avatar
-                                    src={selectedImage}
+                                    src={selectedImage || "/images/example.jpg"}
                                     style={{
                                         margin: "10px",
                                         width: "60px",
@@ -134,7 +150,6 @@ export default function SignUp() {
                             </IconButton>
                         </label>
 
-                        {/*begin register details form*/}
                         <Grid container spacing={2}>
                             <Grid item xs={12} sm={6}>
                                 <TextField
@@ -180,23 +195,20 @@ export default function SignUp() {
                             </Grid>
                         </Grid>
 
-                        {/*sign up button*/}
                         <Button
                             type="submit"
                             fullWidth
                             variant="contained"
-                            sx={{mt: 3, mb: 2}}
+                            sx={{ mt: 3, mb: 2 }}
                         >
                             Sign Up
                         </Button>
 
-                        {/*error messages*/}
                         {error && <Alert severity="error">{error}</Alert>}
 
-                        {/*sign in link*/}
                         <Grid container justifyContent="flex-end">
                             <Grid item>
-                                <Link href="#" variant="body2">
+                                <Link onClick={() => navigate('/login')} variant="body2">
                                     Already have an account? Sign in
                                 </Link>
                             </Grid>
