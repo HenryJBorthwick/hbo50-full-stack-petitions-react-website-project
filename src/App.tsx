@@ -6,6 +6,7 @@ import MainPage from './components/MainPage';
 import Petitions from './components/Petitions.tsx';
 import PetitionDetails from './components/PetitionDetails.tsx';
 import CreatePetition from './components/CreatePetition.tsx';
+import EditPetition from './components/EditPetition.tsx';
 
 function App() {
     return (
@@ -17,8 +18,9 @@ function App() {
                         <Route path={"/login"} element={<LogIn/>}/>
                         <Route path={"/main"} element={<MainPage/>}/>
                         <Route path={"/petitions"} element={<Petitions/>}/>
-                        <Route path={"petitions/:id"} element={<PetitionDetails/>}/>
+                        <Route path={"petition/:id"} element={<PetitionDetails/>}/>
                         <Route path={"/create"} element={<CreatePetition/>}/>
+                        <Route path={"/edit/:id"} element={<EditPetition/>}/>
                     </Routes>
                 </div>
             </Router>

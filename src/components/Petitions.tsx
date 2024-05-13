@@ -22,6 +22,7 @@ import { API_HOST } from '../../config';
 import SearchBar from './SearchBar';
 import FilterBar from './FilterBar';
 import NavBar from './NavBar';
+import { useUserStore } from '../store';
 
 interface Petition {
     petitionId: number;
@@ -51,7 +52,8 @@ const Petitions: React.FC = () => {
     const [sortBy, setSortBy] = useState<string>('CREATED_ASC');
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPetitions, setTotalPetitions] = useState(0);
-    const [pageSize, setPageSize] = useState(10);  // Default page size is 10
+    const [pageSize, setPageSize] = useState(9);
+    const { user } = useUserStore();
 
     useEffect(() => {
         const fetchCategories = async () => {
@@ -135,8 +137,8 @@ const Petitions: React.FC = () => {
 
     return (
         <>
-            <NavBar /> {/* Add the NavBar at the top */}
-            <Container maxWidth="lg" sx={{ marginTop: 8 }}> {/* Add margin top to avoid overlap */}
+            <NavBar />
+            <Container maxWidth="lg" sx={{ marginTop: 8 }}>
                 <Box sx={{ position: 'sticky', top: 0, zIndex: 1, backgroundColor: 'white', padding: 3, borderRadius: 1, boxShadow: 3 }}>
                     <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
                     <FilterBar
@@ -187,9 +189,14 @@ const Petitions: React.FC = () => {
                                                 </Typography>
                                             </Box>
                                         </CardContent>
-                                        <Button variant="outlined" color="primary" href={`/petitions/${petition.petitionId}`}>
+                                        <Button variant="outlined" color="primary" href={`/petition/${petition.petitionId}`}>
                                             View Details
                                         </Button>
+                                        {user && user.id === petition.ownerId && (
+                                            <Button variant="contained" color="secondary" href={`/edit/${petition.petitionId}`}>
+                                                Edit
+                                            </Button>
+                                        )}
                                     </Card>
                                 </Grid>
                             ))
@@ -210,7 +217,7 @@ const Petitions: React.FC = () => {
                             onChange={handlePageSizeChange}
                             label="Page Size"
                         >
-                            {[5, 10].map(size => (
+                            {[5, 9].map(size => (
                                 <MenuItem key={size} value={size}>{size}</MenuItem>
                             ))}
                         </Select>
