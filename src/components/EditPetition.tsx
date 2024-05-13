@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { TextField, Button, Typography, MenuItem, Select, FormControl, InputLabel } from '@mui/material';
+import { TextField, Button, Typography, MenuItem, Select, FormControl, InputLabel, FormHelperText, Box } from '@mui/material';
 import axios from 'axios';
 import { API_HOST } from '../../config';
 import { useUserStore } from '../store';
@@ -15,6 +15,8 @@ const EditPetition: React.FC = () => {
     const [categoryId, setCategoryId] = useState<number | string>('');
     const [categories, setCategories] = useState<any[]>([]);
     const [error, setError] = useState<string>('');
+    const [titleError, setTitleError] = useState<string>('');
+    const [descriptionError, setDescriptionError] = useState<string>('');
 
     useEffect(() => {
         if (id) {
@@ -47,6 +49,25 @@ const EditPetition: React.FC = () => {
             });
     }, []);
 
+    const validateInput = () => {
+        let valid = true;
+        if (!title) {
+            setTitleError('Title is required.');
+            valid = false;
+        } else {
+            setTitleError('');
+        }
+
+        if (!description) {
+            setDescriptionError('Description is required.');
+            valid = false;
+        } else {
+            setDescriptionError('');
+        }
+
+        return valid;
+    };
+
     const handleUpdate = async () => {
         if (!user) {
             setError('You must be logged in to edit a petition.');
@@ -54,6 +75,10 @@ const EditPetition: React.FC = () => {
         }
         if (!id || user.id !== petition.ownerId) {
             setError('You are not authorized to edit this petition.');
+            return;
+        }
+
+        if (!validateInput()) {
             return;
         }
 
@@ -69,7 +94,6 @@ const EditPetition: React.FC = () => {
                     'X-Authorization': user.token
                 }
             });
-            // Navigate to the general petitions page upon successful update
             navigate('/petitions');
         } catch (err) {
             console.error('Error updating petition:', err);
@@ -78,13 +102,16 @@ const EditPetition: React.FC = () => {
     };
 
     return (
-        <div>
-            {error && <Typography color="error">{error}</Typography>}
+        <Box sx={{ width: '100%', maxWidth: 600, mx: 'auto', p: 2 }}>
+            {error && <Typography color="error" sx={{ mb: 2 }}>{error}</Typography>}
             <TextField
                 label="Title"
                 fullWidth
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
+                error={!!titleError}
+                helperText={titleError || 'Enter the title of the petition.'}
+                sx={{ mb: 2 }}
             />
             <TextField
                 label="Description"
@@ -92,8 +119,11 @@ const EditPetition: React.FC = () => {
                 multiline
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
+                error={!!descriptionError}
+                helperText={descriptionError || 'Provide a detailed description.'}
+                sx={{ mb: 2 }}
             />
-            <FormControl fullWidth>
+            <FormControl fullWidth error={categoryId === ''} sx={{ mb: 2 }}>
                 <InputLabel>Category</InputLabel>
                 <Select
                     value={categoryId}
@@ -106,11 +136,12 @@ const EditPetition: React.FC = () => {
                         </MenuItem>
                     ))}
                 </Select>
+                <FormHelperText>{categoryId === '' ? 'Please select a category.' : 'Select the category for your petition.'}</FormHelperText>
             </FormControl>
-            <Button onClick={handleUpdate} variant="contained" color="primary">
+            <Button onClick={handleUpdate} variant="contained" color="primary" sx={{ mt: 1 }}>
                 Update Petition
             </Button>
-        </div>
+        </Box>
     );
 };
 
