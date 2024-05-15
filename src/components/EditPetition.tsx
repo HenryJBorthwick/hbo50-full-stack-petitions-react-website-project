@@ -15,25 +15,26 @@ const EditPetition: React.FC = () => {
     const [categoryId, setCategoryId] = useState<number | string>('');
     const [categories, setCategories] = useState<any[]>([]);
     const [supportTiers, setSupportTiers] = useState<any[]>([]);
+    const [originalTiers, setOriginalTiers] = useState<any[]>([]);
     const [error, setError] = useState<string>('');
 
     useEffect(() => {
         if (id) {
-            const fetchPetition = async () => {
-                try {
-                    const response = await axios.get(`${API_HOST}/petitions/${id}`);
-                    setPetition(response.data);
-                    setTitle(response.data.title);
-                    setDescription(response.data.description);
-                    setCategoryId(response.data.categoryId);
-                    setSupportTiers(response.data.supportTiers || []);
-                } catch (err) {
+            axios.get(`${API_HOST}/petitions/${id}`)
+                .then(response => {
+                    const data = response.data;
+                    setPetition(data);
+                    setTitle(data.title);
+                    setDescription(data.description);
+                    setCategoryId(data.categoryId);
+                    setSupportTiers(data.supportTiers || []);
+                    setOriginalTiers(data.supportTiers || []);
+                })
+                .catch(err => {
                     console.error('Error fetching petition details:', err);
                     setError('Failed to load petition details');
-                }
-            };
+                });
 
-            fetchPetition();
             axios.get(`${API_HOST}/petitions/categories`)
                 .then(response => {
                     setCategories(response.data);
@@ -56,19 +57,39 @@ const EditPetition: React.FC = () => {
             return;
         }
 
-        const updateData = {
-            title,
-            description,
-            categoryId,
-            supportTiers
-        };
-
+        // Handling basic petition update
+        const updateData = { title, description, categoryId };
         try {
             await axios.patch(`${API_HOST}/petitions/${id}`, updateData, {
-                headers: {
-                    'X-Authorization': user.token
-                }
+                headers: { 'X-Authorization': user.token }
             });
+
+            // Handling support tiers
+            const addedTiers = supportTiers.filter(tier => !tier.supportTierId);
+            const updatedTiers = supportTiers.filter(tier => originalTiers.some(orig => orig.supportTierId === tier.supportTierId && (tier.title !== orig.title || tier.description !== orig.description || tier.cost !== orig.cost)));
+            const deletedTiers = originalTiers.filter(orig => !supportTiers.some(tier => tier.supportTierId === orig.supportTierId));
+
+            // Add new tiers
+            for (const tier of addedTiers) {
+                await axios.put(`${API_HOST}/petitions/${id}/supportTiers`, tier, {
+                    headers: { 'X-Authorization': user.token }
+                });
+            }
+
+            // Update existing tiers
+            for (const tier of updatedTiers) {
+                await axios.patch(`${API_HOST}/petitions/${id}/supportTiers/${tier.supportTierId}`, tier, {
+                    headers: { 'X-Authorization': user.token }
+                });
+            }
+
+            // Delete removed tiers
+            for (const tier of deletedTiers) {
+                await axios.delete(`${API_HOST}/petitions/${id}/supportTiers/${tier.supportTierId}`, {
+                    headers: { 'X-Authorization': user.token }
+                });
+            }
+
             navigate('/petitions');
         } catch (err) {
             console.error('Error updating petition:', err);
@@ -76,7 +97,7 @@ const EditPetition: React.FC = () => {
         }
     };
 
-    const handleTierChange = (index: number, field: string, value: string | number) => {
+    const handleTierChange = (index: number, field: string, value: any) => {
         const updatedTiers = supportTiers.map((tier, idx) => idx === index ? { ...tier, [field]: value } : tier);
         setSupportTiers(updatedTiers);
     };
@@ -97,28 +118,11 @@ const EditPetition: React.FC = () => {
     return (
         <Box sx={{ width: '100%', maxWidth: 600, mx: 'auto', p: 2 }}>
             {error && <Typography color="error">{error}</Typography>}
-            <TextField
-                label="Title"
-                fullWidth
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                sx={{ mb: 2 }}
-            />
-            <TextField
-                label="Description"
-                fullWidth
-                multiline
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                sx={{ mb: 2 }}
-            />
+            <TextField label="Title" fullWidth value={title} onChange={(e) => setTitle(e.target.value)} sx={{ mb: 2 }} />
+            <TextField label="Description" fullWidth multiline value={description} onChange={(e) => setDescription(e.target.value)} sx={{ mb: 2 }} />
             <FormControl fullWidth sx={{ mb: 2 }}>
                 <InputLabel>Category</InputLabel>
-                <Select
-                    value={categoryId}
-                    label="Category"
-                    onChange={(e) => setCategoryId(e.target.value)}
-                >
+                <Select value={categoryId} label="Category" onChange={(e) => setCategoryId(e.target.value)}>
                     {categories.map((category) => (
                         <MenuItem key={category.categoryId} value={category.categoryId}>
                             {category.name}
@@ -129,29 +133,9 @@ const EditPetition: React.FC = () => {
             {supportTiers.map((tier, index) => (
                 <Paper key={index} sx={{ p: 2, mb: 2 }}>
                     <Typography variant="h6">Support Tier {index + 1}</Typography>
-                    <TextField
-                        label="Title"
-                        fullWidth
-                        value={tier.title}
-                        onChange={(e) => handleTierChange(index, 'title', e.target.value)}
-                        sx={{ mb: 1 }}
-                    />
-                    <TextField
-                        label="Description"
-                        fullWidth
-                        multiline
-                        value={tier.description}
-                        onChange={(e) => handleTierChange(index, 'description', e.target.value)}
-                        sx={{ mb: 1 }}
-                    />
-                    <TextField
-                        label="Cost"
-                        type="number"
-                        fullWidth
-                        value={tier.cost}
-                        onChange={(e) => handleTierChange(index, 'cost', Number(e.target.value))}
-                        sx={{ mb: 1 }}
-                    />
+                    <TextField label="Title" fullWidth value={tier.title} onChange={(e) => handleTierChange(index, 'title', e.target.value)} sx={{ mb: 1 }} />
+                    <TextField label="Description" fullWidth multiline value={tier.description} onChange={(e) => handleTierChange(index, 'description', e.target.value)} sx={{ mb: 1 }} />
+                    <TextField label="Cost" type="number" fullWidth value={tier.cost} onChange={(e) => handleTierChange(index, 'cost', Number(e.target.value))} sx={{ mb: 1 }} />
                     <Button variant="contained" color="secondary" onClick={() => handleRemoveTier(index)} disabled={supportTiers.length === 1}>
                         Remove Tier
                     </Button>

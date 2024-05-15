@@ -73,11 +73,11 @@ const CreatePetition: React.FC = () => {
                     supportTiers
                 };
 
-                const config = {
-                    headers: { 'X-Authorization': user.token }
-                };
-
-                const petitionResponse = await axios.post(`${API_HOST}/petitions`, petitionData, config);
+                const petitionResponse = await axios.post(`${API_HOST}/petitions`, petitionData, {
+                    headers: {
+                        'X-Authorization': user.token
+                    }
+                });
 
                 // Read the file as an ArrayBuffer to send raw binary data
                 const imageData = await image.arrayBuffer();
