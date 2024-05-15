@@ -15,7 +15,12 @@ import {
     FormControl,
     InputLabel,
     SelectChangeEvent,
-    Button
+    Button,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogContentText,
+    DialogTitle
 } from '@mui/material';
 import dayjs from 'dayjs';
 import { API_HOST } from '../../config';
@@ -54,6 +59,8 @@ const Petitions: React.FC = () => {
     const [totalPetitions, setTotalPetitions] = useState(0);
     const [pageSize, setPageSize] = useState(9);
     const { user } = useUserStore();
+    const [openDialog, setOpenDialog] = useState(false);
+    const [currentPetitionId, setCurrentPetitionId] = useState<number | null>(null);
 
     useEffect(() => {
         const fetchCategories = async () => {
@@ -132,8 +139,29 @@ const Petitions: React.FC = () => {
         setCurrentPage(1); // Reset to the first page whenever page size changes
     };
 
-    const isFirstPage = currentPage === 1;
-    const isLastPage = currentPage === Math.ceil(totalPetitions / pageSize);
+    const handleDeletePetition = async () => {
+        if (currentPetitionId) {
+            try {
+                await axios.delete(`${API_HOST}/petitions/${currentPetitionId}`, {
+                    headers: { 'X-Authorization': user?.token }
+                });
+                setPetitions(petitions.filter(p => p.petitionId !== currentPetitionId));
+                handleCloseDialog();
+            } catch (error) {
+                console.error('Failed to delete petition:', error);
+            }
+        }
+    };
+
+    const handleOpenDialog = (petitionId: number) => {
+        setOpenDialog(true);
+        setCurrentPetitionId(petitionId);
+    };
+
+    const handleCloseDialog = () => {
+        setOpenDialog(false);
+        setCurrentPetitionId(null);
+    };
 
     return (
         <>
@@ -193,9 +221,14 @@ const Petitions: React.FC = () => {
                                             View Details
                                         </Button>
                                         {user && user.id === petition.ownerId && (
-                                            <Button variant="contained" color="secondary" href={`/edit/${petition.petitionId}`}>
-                                                Edit
-                                            </Button>
+                                            <>
+                                                <Button variant="contained" color="secondary" href={`/edit/${petition.petitionId}`}>
+                                                    Edit
+                                                </Button>
+                                                <Button variant="contained" color="error" onClick={() => handleOpenDialog(petition.petitionId)}>
+                                                    Delete
+                                                </Button>
+                                            </>
                                         )}
                                     </Card>
                                 </Grid>
@@ -231,17 +264,28 @@ const Petitions: React.FC = () => {
                         showLastButton
                     />
                 </Box>
-                {isFirstPage && (
-                    <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ marginTop: 1 }}>
-                        You are on the first page.
-                    </Typography>
-                )}
-                {isLastPage && (
-                    <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ marginTop: 1 }}>
-                        You are on the last page.
-                    </Typography>
-                )}
             </Container>
+            <Dialog
+                open={openDialog}
+                onClose={handleCloseDialog}
+                aria-labelledby="alert-dialog-title"
+                aria-describedby="alert-dialog-description"
+            >
+                <DialogTitle id="alert-dialog-title">{"Confirm Delete"}</DialogTitle>
+                <DialogContent>
+                    <DialogContentText id="alert-dialog-description">
+                        Are you sure you want to delete this petition? This action cannot be undone.
+                    </DialogContentText>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={handleCloseDialog} color="primary">
+                        Cancel
+                    </Button>
+                    <Button onClick={handleDeletePetition} color="secondary" autoFocus>
+                        Confirm
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </>
     );
 };
