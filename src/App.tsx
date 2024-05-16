@@ -7,6 +7,7 @@ import Petitions from './components/Petitions.tsx';
 import PetitionDetails from './components/PetitionDetails.tsx';
 import CreatePetition from './components/CreatePetition.tsx';
 import EditPetition from './components/EditPetition.tsx';
+import MyPetitions from './components/MyPetitions.tsx';
 
 function App() {
     return (
@@ -21,6 +22,7 @@ function App() {
                         <Route path={"petition/:id"} element={<PetitionDetails/>}/>
                         <Route path={"/create"} element={<CreatePetition/>}/>
                         <Route path={"/edit/:id"} element={<EditPetition/>}/>
+                        <Route path={"/my-petitions"} element={<MyPetitions/>}/>
                     </Routes>
                 </div>
             </Router>

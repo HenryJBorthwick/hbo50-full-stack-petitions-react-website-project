@@ -4,6 +4,7 @@ import axios from 'axios';
 import { API_HOST } from '../../config';
 import { useUserStore } from '../store';
 import NavBar from './NavBar';
+import { useNavigate } from 'react-router-dom';
 
 interface Category {
     categoryId: number;
@@ -20,6 +21,7 @@ const CreatePetition: React.FC = () => {
     const [error, setError] = useState<string>('');
 
     const { user } = useUserStore();
+    const navigate = useNavigate();
 
     useEffect(() => {
         axios.get(`${API_HOST}/petitions/categories`)
@@ -97,6 +99,9 @@ const CreatePetition: React.FC = () => {
                 setSupportTiers([{ title: '', description: '', cost: 0 }]);
                 setImage(null);
                 setError('');
+
+                // Navigate to the Petitions page
+                navigate('/petitions');
             } catch (err) {
                 setError('Error creating petition');
             }
@@ -107,7 +112,7 @@ const CreatePetition: React.FC = () => {
 
     return (
         <Box>
-            <NavBar />  {/* Add the NavBar component */}
+            <NavBar />
             <Box sx={{ padding: 2 }}>
                 <Paper elevation={3} sx={{ padding: 3 }}>
                     <Typography variant="h4" gutterBottom>Create Petition</Typography>
