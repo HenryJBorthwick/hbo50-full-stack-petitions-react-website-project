@@ -4,12 +4,12 @@ import {
     Toolbar,
     IconButton,
     Typography,
-    Menu,
-    MenuItem,
     Button,
     Container,
     Box,
     Avatar,
+    MenuItem,
+    Menu,
     Tooltip
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
@@ -20,7 +20,6 @@ import { useUserStore } from '../store';
 
 const NavigationBar: React.FC = () => {
     const [anchorElNav, setAnchorElNav] = useState<null | HTMLElement>(null);
-    const [anchorElUser, setAnchorElUser] = useState<null | HTMLElement>(null);
     const [profileImage, setProfileImage] = useState<string>('');
     const navigate = useNavigate();
     const { user, setUser } = useUserStore((state) => ({
@@ -49,16 +48,8 @@ const NavigationBar: React.FC = () => {
         setAnchorElNav(event.currentTarget);
     };
 
-    const handleOpenUserMenu = (event: React.MouseEvent<HTMLElement>) => {
-        setAnchorElUser(event.currentTarget);
-    };
-
     const handleCloseNavMenu = () => {
         setAnchorElNav(null);
-    };
-
-    const handleCloseUserMenu = () => {
-        setAnchorElUser(null);
     };
 
     const handleLogout = async () => {
@@ -73,7 +64,6 @@ const NavigationBar: React.FC = () => {
         } catch (error) {
             console.error('Logout failed', error);
         }
-        setAnchorElUser(null);
     };
 
     const pages = [
@@ -81,7 +71,6 @@ const NavigationBar: React.FC = () => {
         { name: 'My Petitions', path: '/my-petitions' },
         { name: 'Create Petition', path: '/create' }
     ];
-    const settings = user ? ['Logout'] : ['Login'];
 
     return (
         <AppBar position="static">
@@ -90,8 +79,7 @@ const NavigationBar: React.FC = () => {
                     <Typography
                         variant="h6"
                         noWrap
-                        component="a"
-                        href="/"
+                        onClick={() => navigate('/petitions')}
                         sx={{
                             mr: 2,
                             display: { xs: 'none', md: 'flex' },
@@ -100,9 +88,10 @@ const NavigationBar: React.FC = () => {
                             letterSpacing: '.3rem',
                             color: 'inherit',
                             textDecoration: 'none',
+                            cursor: 'pointer',
                         }}
                     >
-                        PETITION SITE
+                        VOX POPULI
                     </Typography>
 
                     <Box sx={{ flexGrow: 1, display: { xs: 'flex', md: 'none' } }}>
@@ -144,8 +133,7 @@ const NavigationBar: React.FC = () => {
                     <Typography
                         variant="h5"
                         noWrap
-                        component="a"
-                        href="/"
+                        onClick={() => navigate('/petitions')}
                         sx={{
                             mr: 2,
                             display: { xs: 'flex', md: 'none' },
@@ -155,9 +143,10 @@ const NavigationBar: React.FC = () => {
                             letterSpacing: '.3rem',
                             color: 'inherit',
                             textDecoration: 'none',
+                            cursor: 'pointer',
                         }}
                     >
-                        PETITION SITE
+                        VOX POPULI
                     </Typography>
                     <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' } }}>
                         {pages.map((page) => (
@@ -171,36 +160,20 @@ const NavigationBar: React.FC = () => {
                         ))}
                     </Box>
 
-                    <Box sx={{ flexGrow: 0 }}>
+                    <Box sx={{ flexGrow: 0, display: 'flex', alignItems: 'center' }}>
                         {user && (
-                            <Tooltip title="Open settings">
-                                <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
-                                    <Avatar alt="User Avatar" src={profileImage} />
-                                </IconButton>
-                            </Tooltip>
+                            <>
+                                <Tooltip title="User Profile">
+                                    <IconButton sx={{ p: 0 }}>
+                                        <Avatar alt="User Avatar" src={profileImage} />
+                                    </IconButton>
+                                </Tooltip>
+                                <Button color="inherit" onClick={handleLogout}>Logout</Button>
+                            </>
                         )}
-                        <Menu
-                            sx={{ mt: '45px' }}
-                            id="menu-appbar"
-                            anchorEl={anchorElUser}
-                            anchorOrigin={{
-                                vertical: 'top',
-                                horizontal: 'right',
-                            }}
-                            keepMounted
-                            transformOrigin={{
-                                vertical: 'top',
-                                horizontal: 'right',
-                            }}
-                            open={Boolean(anchorElUser)}
-                            onClose={handleCloseUserMenu}
-                        >
-                            {settings.map((setting) => (
-                                <MenuItem key={setting} onClick={() => { setting === 'Logout' ? handleLogout() : navigate(`/${setting.toLowerCase()}`); handleCloseUserMenu(); }}>
-                                    <Typography textAlign="center">{setting}</Typography>
-                                </MenuItem>
-                            ))}
-                        </Menu>
+                        {!user && (
+                            <Button color="inherit" onClick={() => navigate('/login')}>Login</Button>
+                        )}
                     </Box>
                 </Toolbar>
             </Container>
