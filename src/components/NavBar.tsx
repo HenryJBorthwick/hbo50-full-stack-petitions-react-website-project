@@ -37,7 +37,7 @@ const NavigationBar: React.FC = () => {
                     setProfileImage(imageUrl);
                 } catch (error) {
                     console.error('Failed to fetch profile image:', error);
-                    setProfileImage('/images/example.jpg');
+                    setProfileImage('/images/default-avatar.png');
                 }
             }
         };

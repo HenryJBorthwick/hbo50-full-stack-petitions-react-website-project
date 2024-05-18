@@ -142,7 +142,7 @@ export default function SignUp() {
                         <label htmlFor="contained-button-file">
                             <IconButton component="span">
                                 <Avatar
-                                    src={selectedImage || "/images/example.jpg"}
+                                    src={selectedImage || '/images/default-avatar.png'}
                                     style={{
                                         margin: "10px",
                                         width: "60px",

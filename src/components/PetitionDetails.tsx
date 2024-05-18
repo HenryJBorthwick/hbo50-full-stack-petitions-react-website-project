@@ -15,10 +15,19 @@ import {
     ListItemText,
     Divider,
     Button,
-    Grid
+    Grid,
+    TextField,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogContentText,
+    DialogTitle,
+    Snackbar,
+    Alert
 } from '@mui/material';
 import { API_HOST } from '../../config';
 import NavBar from './NavBar';
+import { useUserStore } from '../store';
 
 interface SupportTier {
     supportTierId: number;
@@ -66,84 +75,145 @@ const PetitionDetails: React.FC = () => {
     const [petition, setPetition] = useState<Petition | null>(null);
     const [supporters, setSupporters] = useState<Supporter[]>([]);
     const [similarPetitions, setSimilarPetitions] = useState<Petition[]>([]);
+    const [openSupportDialog, setOpenSupportDialog] = useState(false);
+    const [selectedTier, setSelectedTier] = useState<SupportTier | null>(null);
+    const [supportMessage, setSupportMessage] = useState('');
+    const [snackbarMessage, setSnackbarMessage] = useState('');
+    const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
+    const { user } = useUserStore();
 
     useEffect(() => {
-        const fetchPetitionDetails = async () => {
-            try {
-                const response = await axios.get(`${API_HOST}/petitions/${id}`);
-                const petitionData: Petition = response.data;
-
-                try {
-                    const ownerImageResponse = await axios.get(`${API_HOST}/users/${petitionData.ownerId}/image`, { responseType: 'blob' });
-                    petitionData.ownerProfileImage = URL.createObjectURL(ownerImageResponse.data);
-                } catch (error) {
-                    petitionData.ownerProfileImage = '/images/default-avatar.png';
-                }
-
-                setPetition(petitionData);
-
-                const supportersResponse = await axios.get(`${API_HOST}/petitions/${id}/supporters`);
-                const supportersData: Supporter[] = supportersResponse.data;
-
-                const enrichedSupporters = await Promise.all(
-                    supportersData.map(async supporter => {
-                        try {
-                            const supporterImageResponse = await axios.get(`${API_HOST}/users/${supporter.supporterId}/image`, { responseType: 'blob' });
-                            supporter.supporterProfileImage = URL.createObjectURL(supporterImageResponse.data);
-                        } catch (error) {
-                            supporter.supporterProfileImage = '/images/default-avatar.png';
-                        }
-
-                        const tier = petitionData.supportTiers.find(tier => tier.supportTierId === supporter.supportTierId);
-                        supporter.supportTierTitle = tier ? tier.title : 'Unknown Tier';
-
-                        return supporter;
-                    })
-                );
-
-                setSupporters(enrichedSupporters);
-
-                // Fetch all categories
-                const categoriesResponse = await axios.get(`${API_HOST}/petitions/categories`);
-                const categoriesData: Category[] = categoriesResponse.data;
-
-                // Fetch petitions with the same categoryId
-                const categoryResponse = await axios.get(`${API_HOST}/petitions`, {
-                    params: { categoryIds: petitionData.categoryId }
-                });
-                const similarByCategory = categoryResponse.data.petitions;
-
-                // Fetch petitions with the same ownerId
-                const ownerResponse = await axios.get(`${API_HOST}/petitions`, {
-                    params: { ownerId: petitionData.ownerId }
-                });
-                const similarByOwner = ownerResponse.data.petitions;
-
-                // Combine and filter out the current petition
-                let combinedSimilarPetitions = [
-                    ...similarByCategory,
-                    ...similarByOwner
-                ].filter(
-                    (similarPetition, index, self) =>
-                        similarPetition.petitionId !== petitionData.petitionId &&
-                        index === self.findIndex(p => p.petitionId === similarPetition.petitionId)
-                );
-
-                // Map category names for similar petitions
-                combinedSimilarPetitions = combinedSimilarPetitions.map(similarPetition => {
-                    const category = categoriesData.find(cat => cat.categoryId === similarPetition.categoryId);
-                    similarPetition.categoryName = category ? category.name : 'Unknown Category';
-                    return similarPetition;
-                });
-
-                setSimilarPetitions(combinedSimilarPetitions);
-            } catch (error) {
-                console.error('Error fetching petition details:', error);
-            }
-        };
-
         fetchPetitionDetails();
     }, [id]);
+
+    const fetchPetitionDetails = async () => {
+        try {
+            const response = await axios.get(`${API_HOST}/petitions/${id}`);
+            const petitionData: Petition = response.data;
+
+            try {
+                const ownerImageResponse = await axios.get(`${API_HOST}/users/${petitionData.ownerId}/image`, { responseType: 'blob' });
+                petitionData.ownerProfileImage = URL.createObjectURL(ownerImageResponse.data);
+            } catch (error) {
+                petitionData.ownerProfileImage = '/images/default-avatar.png';
+            }
+
+            setPetition(petitionData);
+            fetchSupporters(petitionData);
+        } catch (error) {
+            console.error('Error fetching petition details:', error);
+        }
+    };
+
+    const fetchSupporters = async (petitionData: Petition) => {
+        try {
+            const supportersResponse = await axios.get(`${API_HOST}/petitions/${id}/supporters`);
+            const supportersData: Supporter[] = supportersResponse.data;
+
+            const enrichedSupporters = await Promise.all(
+                supportersData.map(async supporter => {
+                    try {
+                        const supporterImageResponse = await axios.get(`${API_HOST}/users/${supporter.supporterId}/image`, { responseType: 'blob' });
+                        supporter.supporterProfileImage = URL.createObjectURL(supporterImageResponse.data);
+                    } catch (error) {
+                        supporter.supporterProfileImage = '/images/default-avatar.png';
+                    }
+
+                    const tier = petitionData.supportTiers.find(tier => tier.supportTierId === supporter.supportTierId);
+                    supporter.supportTierTitle = tier ? tier.title : 'Unknown Tier';
+
+                    return supporter;
+                })
+            );
+
+            setSupporters(enrichedSupporters);
+
+            // Fetch all categories
+            const categoriesResponse = await axios.get(`${API_HOST}/petitions/categories`);
+            const categoriesData: Category[] = categoriesResponse.data;
+
+            // Fetch petitions with the same categoryId
+            const categoryResponse = await axios.get(`${API_HOST}/petitions`, {
+                params: { categoryIds: petitionData.categoryId }
+            });
+            const similarByCategory = categoryResponse.data.petitions;
+
+            // Fetch petitions with the same ownerId
+            const ownerResponse = await axios.get(`${API_HOST}/petitions`, {
+                params: { ownerId: petitionData.ownerId }
+            });
+            const similarByOwner = ownerResponse.data.petitions;
+
+            // Combine and filter out the current petition
+            let combinedSimilarPetitions = [
+                ...similarByCategory,
+                ...similarByOwner
+            ].filter(
+                (similarPetition, index, self) =>
+                    similarPetition.petitionId !== petitionData.petitionId &&
+                    index === self.findIndex(p => p.petitionId === similarPetition.petitionId)
+            );
+
+            // Map category names for similar petitions
+            combinedSimilarPetitions = combinedSimilarPetitions.map(similarPetition => {
+                const category = categoriesData.find(cat => cat.categoryId === similarPetition.categoryId);
+                similarPetition.categoryName = category ? category.name : 'Unknown Category';
+                return similarPetition;
+            });
+
+            setSimilarPetitions(combinedSimilarPetitions);
+        } catch (error) {
+            console.error('Error fetching supporters:', error);
+        }
+    };
+
+    const handleSupportClick = (tier: SupportTier) => {
+        if (!user) {
+            setSnackbarMessage('You need to log in to support a petition.');
+            setSnackbarSeverity('error');
+            setOpenSupportDialog(false);
+            return;
+        }
+        if (user.id === petition?.ownerId) {
+            setSnackbarMessage('You cannot support your own petition.');
+            setSnackbarSeverity('error');
+            setOpenSupportDialog(false);
+            return;
+        }
+        setSelectedTier(tier);
+        setOpenSupportDialog(true);
+    };
+
+    const handleSupportSubmit = async () => {
+        if (!selectedTier) return;
+
+        try {
+            const supportData: { supportTierId: number; message?: string } = {
+                supportTierId: selectedTier.supportTierId
+            };
+            if (supportMessage.trim()) {
+                supportData.message = supportMessage;
+            }
+            await axios.post(`${API_HOST}/petitions/${id}/supporters`, supportData, {
+                headers: { 'X-Authorization': user?.token }
+            });
+
+            setSnackbarMessage('Successfully supported the petition.');
+            setSnackbarSeverity('success');
+            setSupportMessage('');
+            setOpenSupportDialog(false);
+
+            fetchSupporters(petition!); // Re-fetch supporters
+        } catch (error) {
+            console.error('Error supporting petition:', error);
+            setSnackbarMessage('Failed to support the petition.');
+            setSnackbarSeverity('error');
+        }
+    };
+
+    const hasUserSupportedTier = (tierId: number) => {
+        return supporters.some(supporter => supporter.supportTierId === tierId && supporter.supporterId === user?.id);
+    };
 
     if (!petition) {
         return <Typography>Loading...</Typography>;
@@ -194,6 +264,14 @@ const PetitionDetails: React.FC = () => {
                             <Typography variant="body2" color="textSecondary">
                                 {tier.description} - ${tier.cost}
                             </Typography>
+                            <Button
+                                variant="outlined"
+                                color="primary"
+                                onClick={() => handleSupportClick(tier)}
+                                disabled={!user || user.id === petition.ownerId || hasUserSupportedTier(tier.supportTierId)}
+                            >
+                                Support
+                            </Button>
                         </Box>
                     ))}
 
@@ -286,6 +364,42 @@ const PetitionDetails: React.FC = () => {
                     </Grid>
                 </Box>
             </Container>
+
+            <Dialog open={openSupportDialog} onClose={() => setOpenSupportDialog(false)}>
+                <DialogTitle>Support {selectedTier?.title}</DialogTitle>
+                <DialogContent>
+                    <DialogContentText>
+                        You can optionally leave a message with your support.
+                    </DialogContentText>
+                    <TextField
+                        autoFocus
+                        margin="dense"
+                        label="Support Message"
+                        type="text"
+                        fullWidth
+                        value={supportMessage}
+                        onChange={(e) => setSupportMessage(e.target.value)}
+                    />
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setOpenSupportDialog(false)} color="primary">
+                        Cancel
+                    </Button>
+                    <Button onClick={handleSupportSubmit} color="primary">
+                        Support
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            <Snackbar
+                open={!!snackbarMessage}
+                autoHideDuration={6000}
+                onClose={() => setSnackbarMessage('')}
+            >
+                <Alert onClose={() => setSnackbarMessage('')} severity={snackbarSeverity}>
+                    {snackbarMessage}
+                </Alert>
+            </Snackbar>
         </>
     );
 };
