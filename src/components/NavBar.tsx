@@ -74,11 +74,12 @@ const NavigationBar: React.FC = () => {
     const pages = [
         { name: 'Petitions', path: '/petitions' },
         { name: 'My Petitions', path: '/my-petitions' },
-        { name: 'Create Petition', path: '/create' }
+        { name: 'Create Petition', path: '/create' },
+        { name: 'My Profile', path: '/profile' }
     ];
 
     return (
-        <AppBar position="static">
+        <AppBar position="static" color="primary">
             <Container maxWidth="xl">
                 <Toolbar disableGutters>
                     <Typography
