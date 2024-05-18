@@ -17,24 +17,52 @@ import {
     Alert
 } from '@mui/material';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
-import axios, { AxiosError } from "axios";
-import { useUserStore } from "../store";
+import axios, { AxiosError } from 'axios';
+import { useUserStore } from '../store';
 import NavBar from './NavBar.tsx';
 
 const defaultTheme = createTheme();
 
+const generateDefaultAvatar = (initial: string): HTMLCanvasElement => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 100;
+    canvas.height = 100;
+    const context = canvas.getContext('2d');
+
+    if (context) {
+        context.fillStyle = '#ccc';
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.fillStyle = '#000';
+        context.font = '50px Arial';
+        context.textAlign = 'center';
+        context.textBaseline = 'middle';
+        context.fillText(initial, canvas.width / 2, canvas.height / 2);
+    }
+
+    return canvas;
+};
+
+const convertCanvasToBlob = (canvas: HTMLCanvasElement, type: string): Promise<Blob> => {
+    return new Promise((resolve, reject) => {
+        canvas.toBlob((blob) => {
+            if (blob) {
+                resolve(blob);
+            } else {
+                reject(new Error('Canvas to Blob conversion failed.'));
+            }
+        }, type);
+    });
+};
+
 export default function SignUp() {
-    const [selectedImage, setSelectedImage] = React.useState<string | null>(null);
+    const [selectedImage, setSelectedImage] = React.useState<File | null>(null);
     const setUser = useUserStore(state => state.setUser);
     const [error, setError] = React.useState<string | null>(null);
     const navigate = useNavigate();
 
-    // Handle the image change for profile picture
     const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         if (event.target.files && event.target.files[0]) {
-            const reader = new FileReader();
-            reader.onload = e => setSelectedImage(e.target?.result as string);
-            reader.readAsDataURL(event.target.files[0]);
+            setSelectedImage(event.target.files[0]);
         }
     };
 
@@ -43,54 +71,52 @@ export default function SignUp() {
         const data = new FormData(event.currentTarget);
 
         const user = {
-            email: data.get('email'),
-            firstName: data.get('firstName'),
-            lastName: data.get('lastName'),
-            password: data.get('password')
+            email: data.get('email') as string,
+            firstName: data.get('firstName') as string,
+            lastName: data.get('lastName') as string,
+            password: data.get('password') as string
         };
 
         try {
             // Register the user
-            const registerResponse = await axios.post(`${API_HOST}/users/register`, user);
-            console.log(registerResponse.data);
+            await axios.post(`${API_HOST}/users/register`, user);
 
             // Login the user
             const loginResponse = await axios.post(`${API_HOST}/users/login`, {
                 email: user.email,
                 password: user.password
             });
-            console.log(loginResponse.data);
 
-            // Store the user ID and Token in the store
+            // Store the user ID and token in the store
             setUser({ id: loginResponse.data.userId, token: loginResponse.data.token });
 
-            if (selectedImage) {
-                // Determine the content type based on the file extension
-                let contentType = '';
-                if (selectedImage.endsWith('.png')) {
-                    contentType = 'image/png';
-                } else if (selectedImage.endsWith('.jpg') || selectedImage.endsWith('.jpeg')) {
-                    contentType = 'image/jpeg';
-                } else if (selectedImage.endsWith('.gif')) {
-                    contentType = 'image/gif';
-                }
+            let imageData: ArrayBuffer;
+            let contentType: string;
 
-                // Upload the user image
-                const imageBlob = await fetch(selectedImage).then(res => res.blob());
-                const imageResponse = await axios.put(`${API_HOST}/users/${loginResponse.data.userId}/image`, imageBlob, {
-                    headers: {
-                        'X-Authorization': `${loginResponse.data.token}`,
-                        'Content-Type': contentType
-                    }
-                });
-                console.log(imageResponse);
+            if (selectedImage) {
+                // Convert File to ArrayBuffer
+                imageData = await selectedImage.arrayBuffer();
+                contentType = selectedImage.type;
+            } else {
+                // Generate and upload default avatar
+                const initial = user.firstName.charAt(0).toUpperCase();
+                const canvas = generateDefaultAvatar(initial);
+                const blob = await convertCanvasToBlob(canvas, 'image/png');
+                imageData = await blob.arrayBuffer();
+                contentType = 'image/png';
             }
+
+            // Upload the user image
+            await axios.put(`${API_HOST}/users/${loginResponse.data.userId}/image`, imageData, {
+                headers: {
+                    'X-Authorization': loginResponse.data.token,
+                    'Content-Type': contentType
+                }
+            });
 
             // Redirect to petitions page on successful registration
             navigate('/petitions');
-
         } catch (error: unknown) {
-            console.error('Error:', error);
             if (error instanceof AxiosError) {
                 switch (error.response?.status) {
                     case 400:
@@ -113,8 +139,8 @@ export default function SignUp() {
 
     return (
         <ThemeProvider theme={defaultTheme}>
-            <NavBar /> {/* Add the NavBar at the top */}
-            <Container component="main" maxWidth="xs" sx={{ marginTop: 8 }}> {/* Add marginTop to prevent overlap */}
+            <NavBar />
+            <Container component="main" maxWidth="xs" sx={{ marginTop: 8 }}>
                 <CssBaseline />
                 <Box
                     sx={{
@@ -142,7 +168,7 @@ export default function SignUp() {
                         <label htmlFor="contained-button-file">
                             <IconButton component="span">
                                 <Avatar
-                                    src={selectedImage || '/images/default-avatar.png'}
+                                    src={selectedImage ? URL.createObjectURL(selectedImage) : '/images/default-avatar.png'}
                                     style={{
                                         margin: "10px",
                                         width: "60px",

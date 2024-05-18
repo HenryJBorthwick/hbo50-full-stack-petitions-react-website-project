@@ -32,8 +32,13 @@ const NavigationBar: React.FC = () => {
             if (user) {
                 try {
                     const response = await axios.get(`${API_HOST}/users/${user.id}/image`, { responseType: 'blob' });
-                    const imageUrl = URL.createObjectURL(response.data);
-                    setProfileImage(imageUrl);
+                    const contentType = response.headers['content-type'];
+                    if (contentType === 'image/png' || contentType === 'image/jpeg' || contentType === 'image/gif') {
+                        const imageUrl = URL.createObjectURL(response.data);
+                        setProfileImage(imageUrl);
+                    } else {
+                        setProfileImage('/images/default-avatar.png');
+                    }
                 } catch (error) {
                     console.error('Failed to fetch profile image:', error);
                     setProfileImage('/images/default-avatar.png');
@@ -164,7 +169,7 @@ const NavigationBar: React.FC = () => {
                         {user && (
                             <>
                                 <Tooltip title="User Profile">
-                                    <IconButton sx={{ p: 0 }}>
+                                    <IconButton sx={{ p: 0 }} onClick={() => navigate('/profile')}>
                                         <Avatar alt="User Avatar" src={profileImage} />
                                     </IconButton>
                                 </Tooltip>

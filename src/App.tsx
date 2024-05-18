@@ -8,6 +8,7 @@ import PetitionDetails from './components/PetitionDetails.tsx';
 import CreatePetition from './components/CreatePetition.tsx';
 import EditPetition from './components/EditPetition.tsx';
 import MyPetitions from './components/MyPetitions.tsx';
+import Profile from './components/Profile.tsx';
 
 function App() {
     return (
@@ -23,6 +24,7 @@ function App() {
                         <Route path={"/create"} element={<CreatePetition/>}/>
                         <Route path={"/edit/:id"} element={<EditPetition/>}/>
                         <Route path={"/my-petitions"} element={<MyPetitions/>}/>
+                        <Route path={"/profile"} element={<Profile/>}/>
                     </Routes>
                 </div>
             </Router>
