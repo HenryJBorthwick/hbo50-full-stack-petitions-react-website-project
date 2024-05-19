@@ -20,7 +20,7 @@ import { useUserStore } from '../store';
 
 const NavigationBar: React.FC = () => {
     const [anchorElNav, setAnchorElNav] = useState<null | HTMLElement>(null);
-    const [profileImage, setProfileImage] = useState<string>('');
+    const [profileImage, setProfileImage] = useState<string>('/images/default-avatar.png');
     const navigate = useNavigate();
     const { user, setUser } = useUserStore((state) => ({
         user: state.user,
@@ -28,20 +28,29 @@ const NavigationBar: React.FC = () => {
     }));
 
     useEffect(() => {
-        const fetchProfileImage = async () => {
+        const fetchProfileImage = async (retries = 3, delay = 1000) => {
             if (user) {
                 try {
                     const response = await axios.get(`${API_HOST}/users/${user.id}/image`, { responseType: 'blob' });
-                    const contentType = response.headers['content-type'];
-                    if (contentType === 'image/png' || contentType === 'image/jpeg' || contentType === 'image/gif') {
+                    if (response.status === 200) {
                         const imageUrl = URL.createObjectURL(response.data);
                         setProfileImage(imageUrl);
                     } else {
                         setProfileImage('/images/default-avatar.png');
                     }
-                } catch (error) {
-                    console.error('Failed to fetch profile image:', error);
-                    setProfileImage('/images/default-avatar.png');
+                } catch (error: unknown) {
+                    if (axios.isAxiosError(error)) {
+                        if (error.response && error.response.status === 404 && retries > 0) {
+                            // Retry after a delay if 404 is encountered
+                            setTimeout(() => fetchProfileImage(retries - 1, delay), delay);
+                        } else {
+                            console.error('Failed to fetch profile image:', error);
+                            setProfileImage('/images/default-avatar.png');
+                        }
+                    } else {
+                        console.error('An unexpected error occurred:', error);
+                        setProfileImage('/images/default-avatar.png');
+                    }
                 }
             }
         };

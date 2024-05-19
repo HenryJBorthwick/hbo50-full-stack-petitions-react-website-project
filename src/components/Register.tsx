@@ -20,13 +20,44 @@ import {
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useUserStore } from '../store';
 import NavBar from './NavBar';
 import { API_HOST } from '../../config';
 
 const theme = createTheme();
+
+const generateDefaultAvatar = (initial: string): HTMLCanvasElement => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 100;
+    canvas.height = 100;
+    const context = canvas.getContext('2d');
+
+    if (context) {
+        context.fillStyle = '#ccc';
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.fillStyle = '#000';
+        context.font = '50px Arial';
+        context.textAlign = 'center';
+        context.textBaseline = 'middle';
+        context.fillText(initial, canvas.width / 2, canvas.height / 2);
+    }
+
+    return canvas;
+};
+
+const convertCanvasToBlob = (canvas: HTMLCanvasElement, type: string): Promise<Blob> => {
+    return new Promise((resolve, reject) => {
+        canvas.toBlob((blob) => {
+            if (blob) {
+                resolve(blob);
+            } else {
+                reject(new Error('Canvas to Blob conversion failed.'));
+            }
+        }, type);
+    });
+};
 
 export default function Register() {
     const [firstName, setFirstName] = useState('');
@@ -73,20 +104,34 @@ export default function Register() {
             // Store the user ID and token in the store
             setUser({ id: loginResponse.data.userId, token: loginResponse.data.token });
 
+            let imageData: ArrayBuffer;
+            let contentType: string;
+
             if (selectedImage) {
-                const imageData = await selectedImage.arrayBuffer();
-                await axios.put(`${API_HOST}/users/${loginResponse.data.userId}/image`, imageData, {
-                    headers: {
-                        'X-Authorization': loginResponse.data.token,
-                        'Content-Type': selectedImage.type,
-                    },
-                });
+                // Convert File to ArrayBuffer
+                imageData = await selectedImage.arrayBuffer();
+                contentType = selectedImage.type;
+            } else {
+                // Generate and upload default avatar
+                const initial = user.firstName.charAt(0).toUpperCase();
+                const canvas = generateDefaultAvatar(initial);
+                const blob = await convertCanvasToBlob(canvas, 'image/png');
+                imageData = await blob.arrayBuffer();
+                contentType = 'image/png';
             }
+
+            // Upload the user image
+            await axios.put(`${API_HOST}/users/${loginResponse.data.userId}/image`, imageData, {
+                headers: {
+                    'X-Authorization': loginResponse.data.token,
+                    'Content-Type': contentType
+                }
+            });
 
             // Redirect to petitions page on successful registration
             navigate('/petitions');
-        } catch (error: any) {
-            if (axios.isAxiosError(error)) {
+        } catch (error: unknown) {
+            if (error instanceof AxiosError) {
                 if (error.response?.status === 400) {
                     const responseErrors = error.response.data.errors || error.response.data;
                     if (responseErrors) {
