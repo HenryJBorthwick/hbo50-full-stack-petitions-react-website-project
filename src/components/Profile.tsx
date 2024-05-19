@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Container, Avatar, Box, CircularProgress, Alert, TextField, Button, IconButton } from '@mui/material';
+import { Container, Box, CircularProgress, Alert, TextField, Button } from '@mui/material';
 import { useUserStore } from '../store';
 import { API_HOST } from '../../config';
 import NavigationBar from './NavBar';
-import DeleteIcon from '@mui/icons-material/Delete';
+import ImageUpload from './ImageUpload';
+import { generateDefaultAvatar, convertCanvasToBlob } from '../utils/avatarUtils';
 
 interface UserProfile {
     firstName: string;
@@ -14,40 +15,8 @@ interface UserProfile {
     currentPassword?: string;
 }
 
-const generateDefaultAvatar = (initial: string): HTMLCanvasElement => {
-    const canvas = document.createElement('canvas');
-    canvas.width = 100;
-    canvas.height = 100;
-    const context = canvas.getContext('2d');
-
-    if (context) {
-        context.fillStyle = '#ccc';
-        context.fillRect(0, 0, canvas.width, canvas.height);
-        context.fillStyle = '#000';
-        context.font = '50px Arial';
-        context.textAlign = 'center';
-        context.textBaseline = 'middle';
-        context.fillText(initial, canvas.width / 2, canvas.height / 2);
-    }
-
-    return canvas;
-};
-
-const convertCanvasToBlob = (canvas: HTMLCanvasElement, type: string): Promise<Blob> => {
-    return new Promise((resolve, reject) => {
-        canvas.toBlob((blob) => {
-            if (blob) {
-                resolve(blob);
-            } else {
-                reject(new Error('Canvas to Blob conversion failed.'));
-            }
-        }, type);
-    });
-};
-
 const Profile: React.FC = () => {
     const { user } = useUserStore();
-    const [profile, setProfile] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
@@ -58,7 +27,7 @@ const Profile: React.FC = () => {
     const [currentPassword, setCurrentPassword] = useState<string>('');
     const [newPassword, setNewPassword] = useState<string>('');
     const [profileImage, setProfileImage] = useState<File | null>(null);
-    const [previewImage, setPreviewImage] = useState<string>('');
+    const [initialImage, setInitialImage] = useState<string>('');
 
     const fetchProfile = async () => {
         if (!user) return;
@@ -66,12 +35,12 @@ const Profile: React.FC = () => {
             const response = await axios.get(`${API_HOST}/users/${user.id}`, {
                 headers: { 'X-Authorization': user.token }
             });
-            setProfile(response.data);
             setFirstName(response.data.firstName);
             setLastName(response.data.lastName);
             setEmail(response.data.email);
             const imageResponse = await axios.get(`${API_HOST}/users/${user.id}/image`, { responseType: 'blob' });
-            setPreviewImage(URL.createObjectURL(imageResponse.data));
+            const imageURL = URL.createObjectURL(imageResponse.data);
+            setInitialImage(imageURL);
         } catch (err: any) {
             setError(err.response?.data?.message || 'Failed to fetch profile information');
         } finally {
@@ -82,27 +51,6 @@ const Profile: React.FC = () => {
     useEffect(() => {
         fetchProfile();
     }, [user]);
-
-    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            setProfileImage(e.target.files[0]);
-            setPreviewImage(URL.createObjectURL(e.target.files[0]));
-        }
-    };
-
-    const handleRemoveImage = async () => {
-        if (!user) return;
-        try {
-            await axios.delete(`${API_HOST}/users/${user.id}/image`, {
-                headers: { 'X-Authorization': user.token }
-            });
-            setPreviewImage('');
-            setProfileImage(null);
-            setSuccess('Profile picture removed successfully.');
-        } catch (err: any) {
-            setError(err.response?.data?.message || 'Failed to remove profile picture');
-        }
-    };
 
     const handleUpdateProfile = async () => {
         if (!user) return;
@@ -174,22 +122,12 @@ const Profile: React.FC = () => {
             <NavigationBar />
             <Container maxWidth="sm" sx={{ marginTop: 8 }}>
                 <Box display="flex" flexDirection="column" alignItems="center">
-                    <Avatar
-                        alt={profile?.firstName}
-                        src={previewImage || `${API_HOST}/users/${user.id}/image`}
-                        sx={{ width: 100, height: 100 }}
+                    <ImageUpload
+                        initialImage={initialImage}
+                        onImageChange={setProfileImage}
+                        onImageRemove={() => setProfileImage(null)}
+                        editMode={editMode}
                     />
-                    {editMode && (
-                        <Button variant="contained" component="label">
-                            Upload Picture
-                            <input type="file" hidden onChange={handleImageChange} />
-                        </Button>
-                    )}
-                    {editMode && previewImage && (
-                        <IconButton color="secondary" onClick={handleRemoveImage}>
-                            <DeleteIcon />
-                        </IconButton>
-                    )}
                 </Box>
                 <Box component="form" noValidate autoComplete="off" mt={3}>
                     <TextField

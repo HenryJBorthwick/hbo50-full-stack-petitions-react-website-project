@@ -25,39 +25,14 @@ import { useNavigate } from 'react-router-dom';
 import { useUserStore } from '../store';
 import NavBar from './NavBar';
 import { API_HOST } from '../../config';
+import ImageUpload from './ImageUpload';
+import { generateDefaultAvatar, convertCanvasToBlob } from '../utils/avatarUtils';
 
 const theme = createTheme();
 
-const generateDefaultAvatar = (initial: string): HTMLCanvasElement => {
-    const canvas = document.createElement('canvas');
-    canvas.width = 100;
-    canvas.height = 100;
-    const context = canvas.getContext('2d');
-
-    if (context) {
-        context.fillStyle = '#ccc';
-        context.fillRect(0, 0, canvas.width, canvas.height);
-        context.fillStyle = '#000';
-        context.font = '50px Arial';
-        context.textAlign = 'center';
-        context.textBaseline = 'middle';
-        context.fillText(initial, canvas.width / 2, canvas.height / 2);
-    }
-
-    return canvas;
-};
-
-const convertCanvasToBlob = (canvas: HTMLCanvasElement, type: string): Promise<Blob> => {
-    return new Promise((resolve, reject) => {
-        canvas.toBlob((blob) => {
-            if (blob) {
-                resolve(blob);
-            } else {
-                reject(new Error('Canvas to Blob conversion failed.'));
-            }
-        }, type);
-    });
-};
+// Generate the default avatar image as a base64 string
+const defaultAvatarCanvas = generateDefaultAvatar('P');
+const defaultAvatarImage = defaultAvatarCanvas.toDataURL();
 
 export default function Register() {
     const [firstName, setFirstName] = useState('');
@@ -70,12 +45,6 @@ export default function Register() {
     const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string }>({});
     const setUser = useUserStore((state) => state.setUser);
     const navigate = useNavigate();
-
-    const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        if (event.target.files && event.target.files[0]) {
-            setSelectedImage(event.target.files[0]);
-        }
-    };
 
     const handleClickShowPassword = () => {
         setShowPassword(!showPassword);
@@ -174,21 +143,14 @@ export default function Register() {
                             Register
                         </Typography>
                         <Box component="form" onSubmit={handleSubmit} sx={{ mt: 3 }}>
-                            <input
-                                accept="image/*"
-                                style={{ display: 'none' }}
-                                id="contained-button-file"
-                                type="file"
-                                onChange={handleImageChange}
-                            />
-                            <label htmlFor="contained-button-file">
-                                <IconButton component="span">
-                                    <Avatar
-                                        src={selectedImage ? URL.createObjectURL(selectedImage) : '/images/default-avatar.png'}
-                                        sx={{ width: 60, height: 60 }}
-                                    />
-                                </IconButton>
-                            </label>
+                            <Box sx={{ mb: 3 }}>
+                                <ImageUpload
+                                    initialImage={defaultAvatarImage}
+                                    onImageChange={setSelectedImage}
+                                    onImageRemove={() => setSelectedImage(null)}
+                                    editMode={true}
+                                />
+                            </Box>
                             <Grid container spacing={2}>
                                 <Grid item xs={12} sm={6}>
                                     <TextField
