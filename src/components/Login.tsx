@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
     Avatar, Button, CssBaseline, TextField,
     Link, Grid, Box, Typography, Container,
-    createTheme, ThemeProvider, Alert, CircularProgress
+    createTheme, ThemeProvider, Alert, CircularProgress, Paper
 } from '@mui/material';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import axios from 'axios';
@@ -70,63 +70,70 @@ export default function SignIn() {
 
     return (
         <ThemeProvider theme={theme}>
-            <NavBar /> {/* Add the NavBar at the top */}
-            <Container component="main" maxWidth="xs" sx={{ marginTop: 8 }}> {/* Add marginTop to prevent overlap */}
+            <NavBar />
+            <Container component="main" maxWidth="md" sx={{ mt: 8, display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh' }}>
                 <CssBaseline />
-                <Box
-                    sx={{
-                        marginTop: 8,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                    }}
-                >
-                    <Avatar sx={{ m: 1, bgcolor: 'secondary.main' }}>
-                        <LockOutlinedIcon />
-                    </Avatar>
-                    <Typography component="h1" variant="h5">
-                        Login
-                    </Typography>
-                    <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1 }}>
-                        <TextField
-                            margin="normal"
-                            required
-                            fullWidth
-                            id="email"
-                            label="Email Address"
-                            name="email"
-                            autoComplete="email"
-                            autoFocus
-                        />
-                        <TextField
-                            margin="normal"
-                            required
-                            fullWidth
-                            name="password"
-                            label="Password"
-                            type="password"
-                            id="password"
-                            autoComplete="current-password"
-                        />
-                        {error && <Alert severity="error">{error}</Alert>}
-                        <Button
-                            type="submit"
-                            fullWidth
-                            variant="contained"
-                            sx={{ mt: 3, mb: 2 }}
-                            disabled={loading}
-                        >
-                            {loading ? <CircularProgress size={24} /> : 'Sign In'}
-                        </Button>
-                        <Grid container>
-                            <Grid item>
-                                <Link onClick={() => navigate('/register')} variant="body2">
-                                    {"Don't have an account? Sign Up"}
-                                </Link>
+                <Paper elevation={3} sx={{ p: 4, width: '100%' }}>
+                    <Box
+                        sx={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                        }}
+                    >
+                        <Avatar sx={{ m: 1, backgroundColor: 'secondary.main' }}>
+                            <LockOutlinedIcon />
+                        </Avatar>
+                        <Typography component="h1" variant="h5">
+                            Login
+                        </Typography>
+                        <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1 }}>
+                            <TextField
+                                margin="normal"
+                                required
+                                fullWidth
+                                id="email"
+                                label="Email Address"
+                                name="email"
+                                autoComplete="email"
+                                autoFocus
+                            />
+                            <TextField
+                                margin="normal"
+                                required
+                                fullWidth
+                                name="password"
+                                label="Password"
+                                type="password"
+                                id="password"
+                                autoComplete="current-password"
+                            />
+                            {error && <Alert severity="error">{error}</Alert>}
+                            <Button
+                                type="submit"
+                                fullWidth
+                                variant="contained"
+                                sx={{
+                                    mt: 3,
+                                    mb: 2,
+                                    '&:hover': {
+                                        backgroundColor: 'primary.dark',
+                                    },
+                                }}
+                                disabled={loading}
+                            >
+                                {loading ? <CircularProgress size={24} /> : 'Sign In'}
+                            </Button>
+                            <Grid container justifyContent="flex-end">
+                                <Grid item>
+                                    <Link onClick={() => navigate('/register')} variant="body2" sx={{ cursor: 'pointer' }}>
+                                        {"Don't have an account? Register"}
+                                    </Link>
+                                </Grid>
                             </Grid>
-                        </Grid>
+                        </Box>
                     </Box>
-                </Box>
+                </Paper>
             </Container>
         </ThemeProvider>
     );

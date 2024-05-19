@@ -223,7 +223,7 @@ export default function Register() {
                                     />
                                 </Grid>
                             </Grid>
-                            <Button type="submit" fullWidth variant="contained" sx={{ mt: 3, mb: 2 }}>
+                            <Button type="submit" fullWidth variant="contained" sx={{ mt: 3, mb: 2, '&:hover': { backgroundColor: 'primary.dark', } }}>
                                 Register
                             </Button>
                             {error && <Alert severity="error">{error}</Alert>}

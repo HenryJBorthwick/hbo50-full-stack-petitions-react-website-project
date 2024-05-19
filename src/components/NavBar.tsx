@@ -13,7 +13,7 @@ import {
     Tooltip
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { API_HOST } from '../../config';
 import axios from 'axios';
 import { useUserStore } from '../store';
@@ -22,6 +22,7 @@ const NavigationBar: React.FC = () => {
     const [anchorElNav, setAnchorElNav] = useState<null | HTMLElement>(null);
     const [profileImage, setProfileImage] = useState<string>('/images/default-avatar.png');
     const navigate = useNavigate();
+    const location = useLocation();
     const { user, setUser } = useUserStore((state) => ({
         user: state.user,
         setUser: state.setUser,
@@ -187,7 +188,11 @@ const NavigationBar: React.FC = () => {
                             </>
                         )}
                         {!user && (
-                            <Button color="inherit" onClick={() => navigate('/login')}>Login</Button>
+                            location.pathname === '/register' ? (
+                                <Button color="inherit" onClick={() => navigate('/login')}>Login</Button>
+                            ) : (
+                                <Button color="inherit" onClick={() => navigate('/register')}>Register</Button>
+                            )
                         )}
                     </Box>
                 </Toolbar>
