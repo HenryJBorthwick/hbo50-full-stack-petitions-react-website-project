@@ -136,7 +136,7 @@ export default function Register() {
                             alignItems: 'center',
                         }}
                     >
-                        <Avatar sx={{ m: 1, bgcolor: 'secondary.main' }}>
+                        <Avatar sx={{ m: 1, backgroundColor: 'secondary.main' }}>
                             <LockOutlinedIcon />
                         </Avatar>
                         <Typography component="h1" variant="h5">
@@ -224,13 +224,13 @@ export default function Register() {
                                 </Grid>
                             </Grid>
                             <Button type="submit" fullWidth variant="contained" sx={{ mt: 3, mb: 2 }}>
-                                Sign Up
+                                Register
                             </Button>
                             {error && <Alert severity="error">{error}</Alert>}
                             <Grid container justifyContent="flex-end">
                                 <Grid item>
                                     <Link onClick={() => navigate('/login')} variant="body2" sx={{ cursor: 'pointer' }}>
-                                        Already have an account? Sign in
+                                        Already have an account? Login
                                     </Link>
                                 </Grid>
                             </Grid>
