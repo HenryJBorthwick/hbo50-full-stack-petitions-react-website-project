@@ -8,7 +8,7 @@ interface SearchBarProps {
 
 const SearchBar: React.FC<SearchBarProps> = ({ searchQuery, setSearchQuery }) => {
     return (
-        <Box sx={{ padding: 3 }}>
+        <Box sx={{ mb: 3 }}>
             <TextField
                 fullWidth
                 label="Search Petitions"

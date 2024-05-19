@@ -178,21 +178,21 @@ const Petitions: React.FC = () => {
         <ThemeProvider theme={theme}>
             <NavBar />
             <CssBaseline />
-            <Container component="main" maxWidth="lg" sx={{ mt: 8, display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh' }}>
+            <Container component="main" maxWidth="lg" sx={{ mt: 8, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: '80vh' }}>
+                <Paper elevation={3} sx={{ p: 3, width: '100%', mb: 3 }}>
+                    <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
+                    <FilterBar
+                        categories={categories}
+                        selectedCategories={selectedCategories}
+                        setSelectedCategories={setSelectedCategories}
+                        maxCost={maxCost}
+                        setMaxCost={setMaxCost}
+                        sortBy={sortBy}
+                        setSortBy={setSortBy}
+                    />
+                </Paper>
                 <Paper elevation={3} sx={{ p: 4, width: '100%' }}>
                     <Stack spacing={3}>
-                        <Box sx={{ position: 'sticky', top: 0, zIndex: 1, backgroundColor: 'white', padding: 3, borderRadius: 1, boxShadow: 3 }}>
-                            <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
-                            <FilterBar
-                                categories={categories}
-                                selectedCategories={selectedCategories}
-                                setSelectedCategories={setSelectedCategories}
-                                maxCost={maxCost}
-                                setMaxCost={setMaxCost}
-                                sortBy={sortBy}
-                                setSortBy={setSortBy}
-                            />
-                        </Box>
                         <Grid container spacing={3} sx={{ justifyContent: 'center', maxWidth: 1200, mx: 'auto' }}>
                             {petitions.length > 0 ? (
                                 petitions.map((petition) => (
