@@ -193,7 +193,7 @@ const Petitions: React.FC = () => {
                                 setSortBy={setSortBy}
                             />
                         </Box>
-                        <Grid container spacing={3}>
+                        <Grid container spacing={3} sx={{ justifyContent: 'center', maxWidth: 1200, mx: 'auto' }}>
                             {petitions.length > 0 ? (
                                 petitions.map((petition) => (
                                     <Grid item key={petition.petitionId} xs={12} sm={6} md={4}>

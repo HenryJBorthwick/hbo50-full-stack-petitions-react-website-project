@@ -4,11 +4,11 @@ import { Box, FormControl, InputLabel, Select, MenuItem, Checkbox, ListItemText,
 interface FilterBarProps {
     categories: { [key: number]: string };
     selectedCategories: number[];
-    setSelectedCategories: (categories: number[]) => void;
+    setSelectedCategories: React.Dispatch<React.SetStateAction<number[]>>;
     maxCost: number;
-    setMaxCost: (cost: number) => void;
+    setMaxCost: React.Dispatch<React.SetStateAction<number>>;
     sortBy: string;
-    setSortBy: (sort: string) => void;
+    setSortBy: React.Dispatch<React.SetStateAction<string>>;
 }
 
 const FilterBar: React.FC<FilterBarProps> = ({ categories, selectedCategories, setSelectedCategories, maxCost, setMaxCost, sortBy, setSortBy }) => {
