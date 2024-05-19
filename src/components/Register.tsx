@@ -20,7 +20,7 @@ import {
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
-import axios, { AxiosError } from 'axios';
+import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useUserStore } from '../store';
 import NavBar from './NavBar';
@@ -42,7 +42,6 @@ export default function Register() {
     const [selectedImage, setSelectedImage] = useState<File | null>(null);
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string }>({});
     const setUser = useUserStore((state) => state.setUser);
     const navigate = useNavigate();
 
@@ -57,7 +56,7 @@ export default function Register() {
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         setError(null);
-        setFieldErrors({});
+
         const user = { email, firstName, lastName, password };
 
         try {
@@ -100,25 +99,30 @@ export default function Register() {
             // Redirect to petitions page on successful registration
             navigate('/petitions');
         } catch (error: unknown) {
-            if (error instanceof AxiosError) {
-                if (error.response?.status === 400) {
-                    const responseErrors = error.response.data.errors || error.response.data;
-                    if (responseErrors) {
-                        const errors: { [key: string]: string } = {};
-                        responseErrors.forEach((err: { field: string; message: string }) => {
-                            errors[err.field] = err.message;
-                        });
-                        setFieldErrors(errors);
-                    } else {
-                        setError('Invalid information. Please check your input.');
-                    }
-                } else if (error.response?.status === 403) {
-                    setError('Email already in use. Please use a different email.');
-                } else {
-                    setError('An unexpected error occurred. Please try again.');
+            if (axios.isAxiosError(error) && error.response) {
+                const statusText = error.response.statusText;
+                switch (error.response.status) {
+                    case 400:
+                        if (statusText.includes("firstName")) {
+                            setError("First Name is required.");
+                        } else if (statusText.includes("lastName")) {
+                            setError("Last Name is required.");
+                        } else if (statusText.includes("email")) {
+                            setError("Invalid email format. Please enter a valid email address that contains an '@' and a top-level domain.");
+                        } else if (statusText.includes("password")) {
+                            setError("Password must be at least 6 characters.");
+                        } else {
+                            setError('Invalid information. Please check your input.');
+                        }
+                        break;
+                    case 403:
+                        setError('Email already in use. Please use a different email.');
+                        break;
+                    default:
+                        setError('An unexpected error occurred. Please try again.');
                 }
             } else {
-                setError('An unexpected error occurred. Please try again.');
+                setError('Unable to connect to the server. Please try again later.');
             }
         }
     };
@@ -155,46 +159,36 @@ export default function Register() {
                                 <Grid item xs={12} sm={6}>
                                     <TextField
                                         name="firstName"
-                                        required
                                         fullWidth
                                         id="firstName"
                                         label="First Name"
                                         autoFocus
                                         value={firstName}
                                         onChange={(e) => setFirstName(e.target.value)}
-                                        error={!!fieldErrors.firstName}
-                                        helperText={fieldErrors.firstName}
                                     />
                                 </Grid>
                                 <Grid item xs={12} sm={6}>
                                     <TextField
-                                        required
                                         fullWidth
                                         id="lastName"
                                         label="Last Name"
                                         name="lastName"
                                         value={lastName}
                                         onChange={(e) => setLastName(e.target.value)}
-                                        error={!!fieldErrors.lastName}
-                                        helperText={fieldErrors.lastName}
                                     />
                                 </Grid>
                                 <Grid item xs={12}>
                                     <TextField
-                                        required
                                         fullWidth
                                         id="email"
                                         label="Email Address"
                                         name="email"
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
-                                        error={!!fieldErrors.email}
-                                        helperText={fieldErrors.email}
                                     />
                                 </Grid>
                                 <Grid item xs={12}>
                                     <TextField
-                                        required
                                         fullWidth
                                         name="password"
                                         label="Password"
@@ -218,8 +212,6 @@ export default function Register() {
                                                 </InputAdornment>
                                             ),
                                         }}
-                                        error={!!fieldErrors.password}
-                                        helperText={fieldErrors.password}
                                     />
                                 </Grid>
                             </Grid>

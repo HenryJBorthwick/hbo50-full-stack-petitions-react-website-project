@@ -49,19 +49,19 @@ export default function SignIn() {
             setUser({ id: response.data.userId, token: response.data.token });
             navigate('/petitions');
         } catch (error: any) {
-            if (error.response) {
+            if (axios.isAxiosError(error) && error.response) {
                 switch (error.response.status) {
                     case 400:
-                        setError('Invalid login request.');
+                        setError('Invalid login request. Please check your input.');
                         break;
                     case 401:
                         setError('Incorrect email or password.');
                         break;
                     default:
-                        setError('An error occurred. Please try again.');
+                        setError('An unexpected error occurred. Please try again.');
                 }
             } else {
-                setError('Unable to connect to the server.');
+                setError('Unable to connect to the server. Please try again later.');
             }
         } finally {
             setLoading(false);
