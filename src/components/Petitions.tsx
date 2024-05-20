@@ -141,6 +141,10 @@ const Petitions: React.FC = () => {
         fetchPetitions();
     }, [searchQuery, selectedCategories, maxCost, sortBy, currentPage, pageSize]);
 
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchQuery, selectedCategories, maxCost, sortBy]);
+
     const handlePageChange = (_event: React.ChangeEvent<unknown>, value: number) => {
         setCurrentPage(value);
     };
