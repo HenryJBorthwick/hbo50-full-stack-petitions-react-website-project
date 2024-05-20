@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { TextField, Button, Typography, MenuItem, Select, FormControl, InputLabel, Box, Paper } from '@mui/material';
+import { TextField, Button, Typography, MenuItem, Select, FormControl, InputLabel, Paper, Container, CssBaseline, ThemeProvider, createTheme, Grid } from '@mui/material';
 import axios from 'axios';
 import { API_HOST } from '../../config';
 import { useUserStore } from '../store';
+import NavBar from './NavBar';
+
+const theme = createTheme();
 
 const EditPetition: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -82,33 +85,28 @@ const EditPetition: React.FC = () => {
             return;
         }
 
-        // Handling basic petition update
         const updateData = { title, description, categoryId };
         try {
             await axios.patch(`${API_HOST}/petitions/${id}`, updateData, {
                 headers: { 'X-Authorization': user.token }
             });
 
-            // Handling support tiers
             const addedTiers = supportTiers.filter(tier => !tier.supportTierId);
             const updatedTiers = supportTiers.filter(tier => originalTiers.some(orig => orig.supportTierId === tier.supportTierId && (tier.title !== orig.title || tier.description !== orig.description || tier.cost !== orig.cost)));
             const deletedTiers = originalTiers.filter(orig => !supportTiers.some(tier => tier.supportTierId === orig.supportTierId));
 
-            // Add new tiers
             for (const tier of addedTiers) {
                 await axios.put(`${API_HOST}/petitions/${id}/supportTiers`, tier, {
                     headers: { 'X-Authorization': user.token }
                 });
             }
 
-            // Update existing tiers
             for (const tier of updatedTiers) {
                 await axios.patch(`${API_HOST}/petitions/${id}/supportTiers/${tier.supportTierId}`, tier, {
                     headers: { 'X-Authorization': user.token }
                 });
             }
 
-            // Delete removed tiers
             for (const tier of deletedTiers) {
                 await axios.delete(`${API_HOST}/petitions/${id}/supportTiers/${tier.supportTierId}`, {
                     headers: { 'X-Authorization': user.token }
@@ -141,38 +139,58 @@ const EditPetition: React.FC = () => {
     };
 
     return (
-        <Box sx={{ width: '100%', maxWidth: 600, mx: 'auto', p: 2 }}>
-            {error && <Typography color="error">{error}</Typography>}
-            <TextField label="Title" fullWidth value={title} onChange={(e) => setTitle(e.target.value)} sx={{ mb: 2 }} />
-            <TextField label="Description" fullWidth multiline value={description} onChange={(e) => setDescription(e.target.value)} sx={{ mb:  2 }} />
-            <FormControl fullWidth sx={{ mb: 2 }}>
-                <InputLabel>Category</InputLabel>
-                <Select value={categoryId} label="Category" onChange={(e) => setCategoryId(e.target.value)}>
-                    {categories.map((category) => (
-                        <MenuItem key={category.categoryId} value={category.categoryId}>
-                            {category.name}
-                        </MenuItem>
-                    ))}
-                </Select>
-            </FormControl>
-            {supportTiers.map((tier, index) => (
-                <Paper key={index} sx={{ p: 2, mb:  2 }}>
-                    <Typography variant="h6">Support Tier {index + 1}</Typography>
-                    <TextField label="Title" fullWidth value={tier.title} onChange={(e) => handleTierChange(index, 'title', e.target.value)} sx={{ mb: 1 }} />
-                    <TextField label="Description" fullWidth multiline value={tier.description} onChange={(e) => handleTierChange(index, 'description', e.target.value)} sx={{ mb: 1 }} />
-                    <TextField label="Cost" type="number" fullWidth value={tier.cost} onChange={(e) => handleTierChange(index, 'cost', Number(e.target.value))} sx={{ mb: 1 }} />
-                    <Button variant="contained" color="secondary" onClick={() => handleRemoveTier(index)} disabled={supportTiers.length === 1}>
-                        Remove Tier
-                    </Button>
+        <ThemeProvider theme={theme}>
+            <NavBar />
+            <CssBaseline />
+            <Container component="main" maxWidth="md" sx={{ mt: 8, mb: 4 }}>
+                <Paper elevation={3} sx={{ p: 3 }}>
+                    {error && <Typography color="error">{error}</Typography>}
+                    <Grid container spacing={2}>
+                        <Grid item xs={12}>
+                            <TextField label="Title" fullWidth value={title} onChange={(e) => setTitle(e.target.value)} />
+                        </Grid>
+                        <Grid item xs={12}>
+                            <TextField label="Description" fullWidth multiline value={description} onChange={(e) => setDescription(e.target.value)} />
+                        </Grid>
+                        <Grid item xs={12}>
+                            <FormControl fullWidth>
+                                <InputLabel>Category</InputLabel>
+                                <Select value={categoryId} label="Category" onChange={(e) => setCategoryId(e.target.value)}>
+                                    {categories.map((category) => (
+                                        <MenuItem key={category.categoryId} value={category.categoryId}>
+                                            {category.name}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        </Grid>
+                        {supportTiers.map((tier, index) => (
+                            <Grid item xs={12} key={index}>
+                                <Paper sx={{ p: 2 }}>
+                                    <Typography variant="h6">Support Tier {index + 1}</Typography>
+                                    <TextField label="Title" fullWidth value={tier.title} onChange={(e) => handleTierChange(index, 'title', e.target.value)} sx={{ mb: 1 }} />
+                                    <TextField label="Description" fullWidth multiline value={tier.description} onChange={(e) => handleTierChange(index, 'description', e.target.value)} sx={{ mb: 1 }} />
+                                    <TextField label="Cost" type="number" fullWidth value={tier.cost} onChange={(e) => handleTierChange(index, 'cost', Number(e.target.value))} sx={{ mb: 1 }} />
+                                    <Button variant="contained" color="secondary" onClick={() => handleRemoveTier(index)} disabled={supportTiers.length === 1}>
+                                        Remove Tier
+                                    </Button>
+                                </Paper>
+                            </Grid>
+                        ))}
+                        <Grid item xs={12}>
+                            <Button variant="contained" onClick={handleAddTier} disabled={supportTiers.length >= 3}>
+                                Add Support Tier
+                            </Button>
+                        </Grid>
+                        <Grid item xs={12}>
+                            <Button onClick={handleUpdate} variant="contained" color="primary">
+                                Update Petition
+                            </Button>
+                        </Grid>
+                    </Grid>
                 </Paper>
-            ))}
-            <Button variant="contained" onClick={handleAddTier} disabled={supportTiers.length >= 3} sx={{ mt: 2 }}>
-                Add Support Tier
-            </Button>
-            <Button onClick={handleUpdate} variant="contained" color="primary" sx={{ mt: 2 }}>
-                Update Petition
-            </Button>
-        </Box>
+            </Container>
+        </ThemeProvider>
     );
 };
 
