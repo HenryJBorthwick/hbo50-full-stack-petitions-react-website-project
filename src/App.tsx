@@ -14,6 +14,7 @@ function App() {
     return (
         <div className="App">
             <Router>
+                {/*put navbar here*/}
                 <div>
                     <Routes>
                         <Route path={"/register"} element={<Register/>}/>

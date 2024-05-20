@@ -23,7 +23,11 @@ import {
     DialogContentText,
     DialogTitle,
     Snackbar,
-    Alert
+    Alert,
+    CssBaseline,
+    createTheme,
+    ThemeProvider,
+    Paper
 } from '@mui/material';
 import { API_HOST } from '../../config';
 import NavBar from './NavBar';
@@ -69,6 +73,8 @@ interface Category {
     categoryId: number;
     name: string;
 }
+
+const theme = createTheme();
 
 const PetitionDetails: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -128,23 +134,19 @@ const PetitionDetails: React.FC = () => {
 
             setSupporters(enrichedSupporters);
 
-            // Fetch all categories
             const categoriesResponse = await axios.get(`${API_HOST}/petitions/categories`);
             const categoriesData: Category[] = categoriesResponse.data;
 
-            // Fetch petitions with the same categoryId
             const categoryResponse = await axios.get(`${API_HOST}/petitions`, {
                 params: { categoryIds: petitionData.categoryId }
             });
             const similarByCategory = categoryResponse.data.petitions;
 
-            // Fetch petitions with the same ownerId
             const ownerResponse = await axios.get(`${API_HOST}/petitions`, {
                 params: { ownerId: petitionData.ownerId }
             });
             const similarByOwner = ownerResponse.data.petitions;
 
-            // Combine and filter out the current petition
             let combinedSimilarPetitions = [
                 ...similarByCategory,
                 ...similarByOwner
@@ -154,7 +156,6 @@ const PetitionDetails: React.FC = () => {
                     index === self.findIndex(p => p.petitionId === similarPetition.petitionId)
             );
 
-            // Map category names for similar petitions
             combinedSimilarPetitions = combinedSimilarPetitions.map(similarPetition => {
                 const category = categoriesData.find(cat => cat.categoryId === similarPetition.categoryId);
                 similarPetition.categoryName = category ? category.name : 'Unknown Category';
@@ -220,149 +221,187 @@ const PetitionDetails: React.FC = () => {
     }
 
     return (
-        <>
+        <ThemeProvider theme={theme}>
             <NavBar />
-            <Container maxWidth="md">
-                <Box sx={{ my: 4 }}>
-                    <Typography variant="h4" component="h1" gutterBottom>
-                        {petition.title}
-                    </Typography>
-                    <CardMedia
-                        component="img"
-                        height="300"
-                        image={`${API_HOST}/petitions/${petition.petitionId}/image`}
-                        alt="Petition hero image"
-                    />
-                    <Box display="flex" alignItems="center" my={2}>
-                        <Avatar
-                            src={petition.ownerProfileImage || '/images/default-avatar.png'}
-                            alt={`${petition.ownerFirstName} ${petition.ownerLastName}`}
-                        />
-                        <Typography variant="body1" ml={2}>
-                            {petition.ownerFirstName} {petition.ownerLastName}
+            <CssBaseline />
+            <Container maxWidth="md" sx={{ mt: 8 }}>
+                <Paper elevation={3} sx={{ p: 4 }}>
+                    <Box textAlign="center" sx={{ my: 4 }}>
+                        <Typography variant="h4" component="h1" gutterBottom>
+                            {petition.title}
                         </Typography>
-                    </Box>
-                    <Typography variant="body2" color="textSecondary" gutterBottom>
-                        Created on {new Date(petition.creationDate).toLocaleDateString()}
-                    </Typography>
-                    <Typography variant="body1" paragraph>
-                        {petition.description}
-                    </Typography>
-                    <Typography variant="body2" color="textSecondary" gutterBottom>
-                        Number of Supporters: {petition.numberOfSupporters}
-                    </Typography>
-                    <Typography variant="body2" color="textSecondary" gutterBottom>
-                        Total Money Raised: ${petition.moneyRaised}
-                    </Typography>
-
-                    <Typography variant="h6" gutterBottom>
-                        Support Tiers
-                    </Typography>
-                    {petition.supportTiers.map(tier => (
-                        <Box key={tier.supportTierId} mb={2}>
-                            <Typography variant="body1">{tier.title}</Typography>
-                            <Typography variant="body2" color="textSecondary">
-                                {tier.description} - ${tier.cost}
+                        <CardMedia
+                            component="img"
+                            height="300"
+                            image={`${API_HOST}/petitions/${petition.petitionId}/image`}
+                            alt="Petition hero image"
+                        />
+                        <Box display="flex" justifyContent="center" alignItems="center" my={2}>
+                            <Avatar
+                                src={petition.ownerProfileImage || '/images/default-avatar.png'}
+                                alt={`${petition.ownerFirstName} ${petition.ownerLastName}`}
+                                sx={{ mr: 2 }}
+                            />
+                            <Typography variant="h6">
+                                {petition.ownerFirstName} {petition.ownerLastName}
                             </Typography>
-                            <Button
-                                variant="outlined"
-                                color="primary"
-                                onClick={() => handleSupportClick(tier)}
-                                disabled={!user || user.id === petition.ownerId || hasUserSupportedTier(tier.supportTierId)}
-                            >
-                                Support
-                            </Button>
                         </Box>
-                    ))}
-
-                    <Typography variant="h6" gutterBottom>
-                        Supporters
-                    </Typography>
-                    <List>
-                        {supporters.map(supporter => (
-                            <React.Fragment key={supporter.supportId}>
-                                <ListItem alignItems="flex-start">
-                                    <ListItemAvatar>
-                                        <Avatar
-                                            src={supporter.supporterProfileImage || '/images/default-avatar.png'}
-                                            alt={`${supporter.supporterFirstName} ${supporter.supporterLastName}`}
-                                        />
-                                    </ListItemAvatar>
-                                    <ListItemText
-                                        primary={`${supporter.supporterFirstName} ${supporter.supporterLastName} - ${supporter.supportTierTitle}`}
-                                        secondary={
-                                            <>
-                                                <Typography
-                                                    component="span"
-                                                    variant="body2"
-                                                    color="textPrimary"
-                                                >
-                                                    {supporter.message}
-                                                </Typography>
-                                                <Typography
-                                                    component="span"
-                                                    variant="body2"
-                                                    color="textSecondary"
-                                                >
-                                                    {` - ${new Date(supporter.timestamp).toLocaleString()}`}
-                                                </Typography>
-                                            </>
-                                        }
-                                    />
-                                </ListItem>
-                                <Divider variant="inset" component="li" />
-                            </React.Fragment>
-                        ))}
-                    </List>
-
-                    <Typography variant="h6" gutterBottom>
-                        Similar Petitions
-                    </Typography>
-                    <Grid container spacing={2}>
-                        {similarPetitions.map(similarPetition => (
-                            <Grid item xs={12} sm={6} md={4} key={similarPetition.petitionId}>
+                        <Typography variant="body2" color="textSecondary" gutterBottom>
+                            Created on {new Date(petition.creationDate).toLocaleDateString()}
+                        </Typography>
+                        <Typography variant="body1" paragraph>
+                            {petition.description}
+                        </Typography>
+                        <Grid container spacing={3} justifyContent="center" sx={{ mt: 2 }}>
+                            <Grid item>
                                 <Card>
-                                    <CardMedia
-                                        component="img"
-                                        height="140"
-                                        image={`${API_HOST}/petitions/${similarPetition.petitionId}/image`}
-                                        alt="Similar petition hero image"
-                                    />
                                     <CardContent>
                                         <Typography variant="h6" component="div">
-                                            {similarPetition.title}
+                                            Supporters
                                         </Typography>
                                         <Typography variant="body2" color="textSecondary">
-                                            Created on {new Date(similarPetition.creationDate).toLocaleDateString()}
+                                            Number of Supporters
                                         </Typography>
-                                        <Box display="flex" alignItems="center" mt={2}>
-                                            <Avatar
-                                                src={`${API_HOST}/users/${similarPetition.ownerId}/image`}
-                                                alt={`${similarPetition.ownerFirstName} ${similarPetition.ownerLastName}`}
-                                            />
-                                            <Typography variant="body2" ml={2}>
-                                                {similarPetition.ownerFirstName} {similarPetition.ownerLastName}
-                                            </Typography>
-                                        </Box>
-                                        <Typography variant="body2" color="textSecondary" gutterBottom>
-                                            Category: {similarPetition.categoryName}
+                                        <Typography variant="h6" color="primary">
+                                            {petition.numberOfSupporters}
                                         </Typography>
-                                        <Typography variant="body2" color="textSecondary" gutterBottom>
-                                            Supporting Cost: ${similarPetition.supportingCost}
-                                        </Typography>
-                                        <Button
-                                            variant="outlined"
-                                            color="primary"
-                                            href={`/petition/${similarPetition.petitionId}`}
-                                        >
-                                            View Petition
-                                        </Button>
                                     </CardContent>
                                 </Card>
                             </Grid>
-                        ))}
-                    </Grid>
-                </Box>
+                            <Grid item>
+                                <Card>
+                                    <CardContent>
+                                        <Typography variant="h6" component="div">
+                                            Money Raised
+                                        </Typography>
+                                        <Typography variant="body2" color="textSecondary">
+                                            Total Money Raised
+                                        </Typography>
+                                        <Typography variant="h6" color="primary">
+                                            ${petition.moneyRaised}
+                                        </Typography>
+                                    </CardContent>
+                                </Card>
+                            </Grid>
+                        </Grid>
+
+                        <Typography variant="h6" gutterBottom sx={{ mt: 4 }}>
+                            Support Tiers
+                        </Typography>
+                        <Grid container spacing={2} direction="column" alignItems="center">
+                            {petition.supportTiers.map(tier => (
+                                <Grid item xs={12} key={tier.supportTierId} sx={{ width: '100%' }}>
+                                    <Card sx={{ height: '100%' }}>
+                                        <CardContent>
+                                            <Typography variant="body1">{tier.title}</Typography>
+                                            <Typography variant="body2" color="textSecondary">
+                                                {tier.description} - ${tier.cost}
+                                            </Typography>
+                                            <Button
+                                                variant="outlined"
+                                                color="primary"
+                                                onClick={() => handleSupportClick(tier)}
+                                                disabled={!user || user.id === petition.ownerId || hasUserSupportedTier(tier.supportTierId)}
+                                                sx={{ mt: 1 }}
+                                            >
+                                                Support
+                                            </Button>
+                                        </CardContent>
+                                    </Card>
+                                </Grid>
+                            ))}
+                        </Grid>
+
+                        <Typography variant="h6" gutterBottom sx={{ mt: 4 }}>
+                            Supporters
+                        </Typography>
+                        <List>
+                            {supporters.map(supporter => (
+                                <React.Fragment key={supporter.supportId}>
+                                    <ListItem alignItems="flex-start">
+                                        <ListItemAvatar>
+                                            <Avatar
+                                                src={supporter.supporterProfileImage || '/images/default-avatar.png'}
+                                                alt={`${supporter.supporterFirstName} ${supporter.supporterLastName}`}
+                                            />
+                                        </ListItemAvatar>
+                                        <ListItemText
+                                            primary={`${supporter.supporterFirstName} ${supporter.supporterLastName} - ${supporter.supportTierTitle}`}
+                                            secondary={
+                                                <>
+                                                    <Typography
+                                                        component="span"
+                                                        variant="body2"
+                                                        color="textPrimary"
+                                                    >
+                                                        {supporter.message}
+                                                    </Typography>
+                                                    <Typography
+                                                        component="span"
+                                                        variant="body2"
+                                                        color="textSecondary"
+                                                    >
+                                                        {` - ${new Date(supporter.timestamp).toLocaleString()}`}
+                                                    </Typography>
+                                                </>
+                                            }
+                                        />
+                                    </ListItem>
+                                    <Divider variant="inset" component="li" />
+                                </React.Fragment>
+                            ))}
+                        </List>
+
+                        <Typography variant="h6" gutterBottom sx={{ mt: 4 }}>
+                            Similar Petitions
+                        </Typography>
+                        <Grid container spacing={2}>
+                            {similarPetitions.map(similarPetition => (
+                                <Grid item xs={12} sm={6} md={4} key={similarPetition.petitionId}>
+                                    <Card>
+                                        <CardMedia
+                                            component="img"
+                                            height="140"
+                                            image={`${API_HOST}/petitions/${similarPetition.petitionId}/image`}
+                                            alt="Similar petition hero image"
+                                        />
+                                        <CardContent>
+                                            <Typography variant="h6" component="div">
+                                                {similarPetition.title}
+                                            </Typography>
+                                            <Typography variant="body2" color="textSecondary">
+                                                Created on {new Date(similarPetition.creationDate).toLocaleDateString()}
+                                            </Typography>
+                                            <Box display="flex" alignItems="center" mt={2}>
+                                                <Avatar
+                                                    src={`${API_HOST}/users/${similarPetition.ownerId}/image`}
+                                                    alt={`${similarPetition.ownerFirstName} ${similarPetition.ownerLastName}`}
+                                                    sx={{ mr: 2 }}
+                                                />
+                                                <Typography variant="body2">
+                                                    {similarPetition.ownerFirstName} {similarPetition.ownerLastName}
+                                                </Typography>
+                                            </Box>
+                                            <Typography variant="body2" color="textSecondary" gutterBottom>
+                                                Category: {similarPetition.categoryName}
+                                            </Typography>
+                                            <Typography variant="body2" color="textSecondary" gutterBottom>
+                                                Supporting Cost: ${similarPetition.supportingCost}
+                                            </Typography>
+                                            <Button
+                                                variant="outlined"
+                                                color="primary"
+                                                href={`/petition/${similarPetition.petitionId}`}
+                                            >
+                                                View Petition
+                                            </Button>
+                                        </CardContent>
+                                    </Card>
+                                </Grid>
+                            ))}
+                        </Grid>
+                    </Box>
+                </Paper>
             </Container>
 
             <Dialog open={openSupportDialog} onClose={() => setOpenSupportDialog(false)}>
@@ -400,7 +439,7 @@ const PetitionDetails: React.FC = () => {
                     {snackbarMessage}
                 </Alert>
             </Snackbar>
-        </>
+        </ThemeProvider>
     );
 };
 
