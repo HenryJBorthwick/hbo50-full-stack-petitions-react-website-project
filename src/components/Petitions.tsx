@@ -16,11 +16,6 @@ import {
     InputLabel,
     SelectChangeEvent,
     Button,
-    Dialog,
-    DialogActions,
-    DialogContent,
-    DialogContentText,
-    DialogTitle,
     Stack,
     Paper,
     CssBaseline,
@@ -67,8 +62,7 @@ const Petitions: React.FC = () => {
     const [totalPetitions, setTotalPetitions] = useState(0);
     const [pageSize, setPageSize] = useState(9);
     const { user } = useUserStore();
-    const [openDialog, setOpenDialog] = useState(false);
-    const [currentPetitionId, setCurrentPetitionId] = useState<number | null>(null);
+    const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
     useEffect(() => {
         const fetchCategories = async () => {
@@ -87,63 +81,95 @@ const Petitions: React.FC = () => {
         fetchCategories();
     }, []);
 
+    const fetchPetitionDetails = async (petition: Petition): Promise<Petition> => {
+        try {
+            const detailsResponse = await axios.get(`${API_HOST}/petitions/${petition.petitionId}`);
+            return { ...petition, description: detailsResponse.data.description };
+        } catch (error) {
+            console.error(`Failed to fetch details for petition ${petition.petitionId}:`, error);
+            return petition;
+        }
+    };
+
+    const fetchPetitions = async () => {
+        try {
+            const params: any = {
+                sortBy,
+                startIndex: (currentPage - 1) * pageSize,
+                count: pageSize
+            };
+            if (searchQuery) {
+                params.q = searchQuery;
+            }
+            if (selectedCategories.length > 0) {
+                params.categoryIds = selectedCategories;
+            }
+            if (maxCost > 0) {
+                params.supportingCost = maxCost;
+            }
+
+            const petitionsResponse = await axios.get(`${API_HOST}/petitions`, { params });
+            setTotalPetitions(petitionsResponse.data.count);
+            const petitionsWithDetails = await Promise.all(
+                petitionsResponse.data.petitions.map(async (petition: Petition) => {
+                    const detailedPetition = await fetchPetitionDetails(petition);
+                    try {
+                        const imageResponse = await axios.get(`${API_HOST}/users/${detailedPetition.ownerId}/image`, { responseType: 'blob' });
+                        detailedPetition.ownerProfileImage = URL.createObjectURL(imageResponse.data);
+                    } catch (error) {
+                        const initial = petition.ownerFirstName.charAt(0).toUpperCase();
+                        const canvas = generateDefaultAvatar(initial);
+                        const blob = await convertCanvasToBlob(canvas, 'image/png');
+                        detailedPetition.ownerProfileImage = URL.createObjectURL(blob);
+                    }
+                    return detailedPetition;
+                })
+            );
+            setPetitions(petitionsWithDetails);
+        } catch (error) {
+            console.error('Failed to fetch petitions:', error);
+        }
+    };
+
     useEffect(() => {
-        const fetchPetitionDetails = async (petition: Petition): Promise<Petition> => {
-            try {
-                const detailsResponse = await axios.get(`${API_HOST}/petitions/${petition.petitionId}`);
-                return { ...petition, description: detailsResponse.data.description };
-            } catch (error) {
-                console.error(`Failed to fetch details for petition ${petition.petitionId}:`, error);
-                return petition;
-            }
-        };
-
-        const fetchPetitions = async () => {
-            try {
-                const params: any = {
-                    sortBy,
-                    startIndex: (currentPage - 1) * pageSize,
-                    count: pageSize
-                };
-                if (searchQuery) {
-                    params.q = searchQuery;
-                }
-                if (selectedCategories.length > 0) {
-                    params.categoryIds = selectedCategories;
-                }
-                if (maxCost > 0) {
-                    params.supportingCost = maxCost;
-                }
-
-                const petitionsResponse = await axios.get(`${API_HOST}/petitions`, { params });
-                setTotalPetitions(petitionsResponse.data.count);
-                const petitionsWithDetails = await Promise.all(
-                    petitionsResponse.data.petitions.map(async (petition: Petition) => {
-                        const detailedPetition = await fetchPetitionDetails(petition);
-                        try {
-                            const imageResponse = await axios.get(`${API_HOST}/users/${detailedPetition.ownerId}/image`, { responseType: 'blob' });
-                            detailedPetition.ownerProfileImage = URL.createObjectURL(imageResponse.data);
-                        } catch (error) {
-                            const initial = petition.ownerFirstName.charAt(0).toUpperCase();
-                            const canvas = generateDefaultAvatar(initial);
-                            const blob = await convertCanvasToBlob(canvas, 'image/png');
-                            detailedPetition.ownerProfileImage = URL.createObjectURL(blob);
-                        }
-                        return detailedPetition;
-                    })
-                );
-                setPetitions(petitionsWithDetails);
-            } catch (error) {
-                console.error('Failed to fetch petitions:', error);
-            }
-        };
-
         fetchPetitions();
     }, [searchQuery, selectedCategories, maxCost, sortBy, currentPage, pageSize]);
 
     useEffect(() => {
         setCurrentPage(1);
     }, [searchQuery, selectedCategories, maxCost, sortBy]);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (confirmDeleteId !== null) {
+                const target = event.target as HTMLElement;
+                if (!target.closest('.confirm-delete')) {
+                    setConfirmDeleteId(null);
+                }
+            }
+        };
+
+        document.addEventListener('click', handleClickOutside);
+        return () => {
+            document.removeEventListener('click', handleClickOutside);
+        };
+    }, [confirmDeleteId]);
+
+    const handleConfirmDelete = (petitionId: number) => {
+        setConfirmDeleteId(petitionId);
+    };
+
+    const handleDeletePetition = async (petitionId: number) => {
+        try {
+            await axios.delete(`${API_HOST}/petitions/${petitionId}`, {
+                headers: { 'X-Authorization': user?.token }
+            });
+            setConfirmDeleteId(null);
+            fetchPetitions();
+        } catch (error) {
+            console.error('Failed to delete petition:', error);
+        }
+    };
 
     const handlePageChange = (_event: React.ChangeEvent<unknown>, value: number) => {
         setCurrentPage(value);
@@ -154,29 +180,7 @@ const Petitions: React.FC = () => {
         setCurrentPage(1); // Reset to the first page whenever page size changes
     };
 
-    const handleDeletePetition = async () => {
-        if (currentPetitionId) {
-            try {
-                await axios.delete(`${API_HOST}/petitions/${currentPetitionId}`, {
-                    headers: { 'X-Authorization': user?.token }
-                });
-                setPetitions(petitions.filter(p => p.petitionId !== currentPetitionId));
-                handleCloseDialog();
-            } catch (error) {
-                console.error('Failed to delete petition:', error);
-            }
-        }
-    };
-
-    const handleOpenDialog = (petitionId: number) => {
-        setOpenDialog(true);
-        setCurrentPetitionId(petitionId);
-    };
-
-    const handleCloseDialog = () => {
-        setOpenDialog(false);
-        setCurrentPetitionId(null);
-    };
+    if (!user) return null;
 
     return (
         <ThemeProvider theme={theme}>
@@ -242,9 +246,26 @@ const Petitions: React.FC = () => {
                                                     <Button variant="contained" color="secondary" href={`/edit/${petition.petitionId}`} sx={{ m: 1 }}>
                                                         Edit
                                                     </Button>
-                                                    <Button variant="contained" color="error" onClick={() => handleOpenDialog(petition.petitionId)} sx={{ m: 1 }}>
-                                                        Delete
-                                                    </Button>
+                                                    {confirmDeleteId === petition.petitionId ? (
+                                                        <Button
+                                                            className="confirm-delete"
+                                                            variant="contained"
+                                                            color="warning"
+                                                            onClick={() => handleDeletePetition(petition.petitionId)}
+                                                            sx={{ m: 1 }}
+                                                        >
+                                                            Confirm Delete
+                                                        </Button>
+                                                    ) : (
+                                                        <Button
+                                                            variant="contained"
+                                                            color="error"
+                                                            onClick={() => handleConfirmDelete(petition.petitionId)}
+                                                            sx={{ m: 1 }}
+                                                        >
+                                                            Delete
+                                                        </Button>
+                                                    )}
                                                 </>
                                             )}
                                         </Card>
@@ -283,27 +304,6 @@ const Petitions: React.FC = () => {
                     </Stack>
                 </Paper>
             </Container>
-            <Dialog
-                open={openDialog}
-                onClose={handleCloseDialog}
-                aria-labelledby="alert-dialog-title"
-                aria-describedby="alert-dialog-description"
-            >
-                <DialogTitle id="alert-dialog-title">{"Confirm Delete"}</DialogTitle>
-                <DialogContent>
-                    <DialogContentText id="alert-dialog-description">
-                        Are you sure you want to delete this petition? This action cannot be undone.
-                    </DialogContentText>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={handleCloseDialog} color="primary">
-                        Cancel
-                    </Button>
-                    <Button onClick={handleDeletePetition} color="secondary" autoFocus>
-                        Confirm
-                    </Button>
-                </DialogActions>
-            </Dialog>
         </ThemeProvider>
     );
 };
