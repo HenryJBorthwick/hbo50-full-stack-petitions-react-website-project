@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { TextField, Button, Typography, MenuItem, Select, FormControl, InputLabel, Paper, Container, CssBaseline, ThemeProvider, createTheme, Grid } from '@mui/material';
+import { TextField, Button, Typography, MenuItem, Select, FormControl, InputLabel, Paper, Container, CssBaseline, ThemeProvider, createTheme, Grid, Snackbar, Alert } from '@mui/material';
 import axios from 'axios';
 import { API_HOST } from '../../config';
 import { useUserStore } from '../store';
@@ -20,6 +20,7 @@ const EditPetition: React.FC = () => {
     const [supportTiers, setSupportTiers] = useState<any[]>([]);
     const [originalTiers, setOriginalTiers] = useState<any[]>([]);
     const [error, setError] = useState<string>('');
+    const [openSnackbar, setOpenSnackbar] = useState(false);
 
     useEffect(() => {
         if (id) {
@@ -36,6 +37,7 @@ const EditPetition: React.FC = () => {
                 .catch(err => {
                     console.error('Error fetching petition details:', err);
                     setError('Failed to load petition details');
+                    setOpenSnackbar(true);
                 });
 
             axios.get(`${API_HOST}/petitions/categories`)
@@ -44,9 +46,11 @@ const EditPetition: React.FC = () => {
                 })
                 .catch(() => {
                     setError('Error fetching categories');
+                    setOpenSnackbar(true);
                 });
         } else {
             setError('Petition ID is not specified in the URL');
+            setOpenSnackbar(true);
         }
     }, [id]);
 
@@ -72,16 +76,19 @@ const EditPetition: React.FC = () => {
     const handleUpdate = async () => {
         if (!user) {
             setError('You must be logged in to edit a petition.');
+            setOpenSnackbar(true);
             return;
         }
         if (!id || user.id !== petition.ownerId) {
             setError('You are not authorized to edit this petition.');
+            setOpenSnackbar(true);
             return;
         }
 
         const validationError = validateTiers();
         if (validationError) {
             setError(validationError);
+            setOpenSnackbar(true);
             return;
         }
 
@@ -115,8 +122,39 @@ const EditPetition: React.FC = () => {
 
             navigate('/petitions');
         } catch (err) {
-            console.error('Error updating petition:', err);
-            setError('Failed to update petition');
+            if (axios.isAxiosError(err) && err.response) {
+                const statusText = err.response.statusText;
+                switch (err.response.status) {
+                    case 400:
+                        if (statusText.includes("title")) {
+                            setError("Title must not be empty.");
+                        } else if (statusText.includes("description")) {
+                            setError("Description must not be empty.");
+                        } else if (statusText.includes("categoryId")) {
+                            setError("Category must be selected.");
+                        } else {
+                            setError('Invalid data provided. Please check your input.');
+                        }
+                        break;
+                    case 401:
+                        setError('You are not authorized to edit this petition.');
+                        break;
+                    case 403:
+                        setError('You are not allowed to edit this petition.');
+                        break;
+                    case 404:
+                        setError('Petition not found.');
+                        break;
+                    case 500:
+                        setError('An internal server error occurred.');
+                        break;
+                    default:
+                        setError('An unknown error occurred.');
+                }
+            } else {
+                setError('Failed to update petition. Please try again.');
+            }
+            setOpenSnackbar(true);
         }
     };
 
@@ -130,6 +168,7 @@ const EditPetition: React.FC = () => {
             setSupportTiers([...supportTiers, { title: '', description: '', cost: 0 }]);
         } else {
             setError('Cannot have more than 3 support tiers');
+            setOpenSnackbar(true);
         }
     };
 
@@ -138,13 +177,16 @@ const EditPetition: React.FC = () => {
         setSupportTiers(updatedTiers);
     };
 
+    const handleCloseSnackbar = () => {
+        setOpenSnackbar(false);
+    };
+
     return (
         <ThemeProvider theme={theme}>
             <NavBar />
             <CssBaseline />
             <Container component="main" maxWidth="md" sx={{ mt: 8, mb: 4 }}>
                 <Paper elevation={3} sx={{ p: 3 }}>
-                    {error && <Typography color="error">{error}</Typography>}
                     <Grid container spacing={2}>
                         <Grid item xs={12}>
                             <TextField label="Title" fullWidth value={title} onChange={(e) => setTitle(e.target.value)} />
@@ -189,6 +231,11 @@ const EditPetition: React.FC = () => {
                         </Grid>
                     </Grid>
                 </Paper>
+                <Snackbar open={openSnackbar} autoHideDuration={6000} onClose={handleCloseSnackbar}>
+                    <Alert onClose={handleCloseSnackbar} severity="error" sx={{ width: '100%' }}>
+                        {error}
+                    </Alert>
+                </Snackbar>
             </Container>
         </ThemeProvider>
     );
