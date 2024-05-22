@@ -2,7 +2,6 @@ import './App.css'
 import {BrowserRouter as Router, Route, Routes} from 'react-router-dom';
 import Register from './components/Register';
 import LogIn from './components/Login.tsx';
-import MainPage from './components/MainPage';
 import Petitions from './components/Petitions.tsx';
 import PetitionDetails from './components/PetitionDetails.tsx';
 import CreatePetition from './components/CreatePetition.tsx';
@@ -19,7 +18,6 @@ function App() {
                     <Routes>
                         <Route path={"/register"} element={<Register/>}/>
                         <Route path={"/login"} element={<LogIn/>}/>
-                        <Route path={"/main"} element={<MainPage/>}/>
                         <Route path={"/petitions"} element={<Petitions/>}/>
                         <Route path={"petition/:id"} element={<PetitionDetails/>}/>
                         <Route path={"/create"} element={<CreatePetition/>}/>
