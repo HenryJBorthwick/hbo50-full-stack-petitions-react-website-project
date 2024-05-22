@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { TextField, Button, MenuItem, Typography, Box, Paper, Grid } from '@mui/material';
+import { TextField, Button, MenuItem, Typography, Paper, Grid, Container, CssBaseline, ThemeProvider, createTheme, Alert } from '@mui/material';
 import axios from 'axios';
 import { API_HOST } from '../../config';
 import { useUserStore } from '../store';
@@ -10,6 +10,10 @@ interface Category {
     categoryId: number;
     name: string;
 }
+
+const theme = createTheme();
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif'];
 
 const CreatePetition: React.FC = () => {
     const [title, setTitle] = useState('');
@@ -49,39 +53,106 @@ const CreatePetition: React.FC = () => {
         setSupportTiers(updatedTiers);
     };
 
+    const handleCostKeyDown = (index: number) => (event: React.KeyboardEvent<HTMLInputElement>) => {
+        const key = event.key;
+        const currentCost = supportTiers[index].cost.toString();
+
+        if (!/^[0-9]$/.test(key) && key !== 'Backspace') {
+            event.preventDefault();
+        }
+
+        if (key === 'Backspace' && currentCost.length === 1) {
+            setSupportTiers(supportTiers.map((tier, idx) =>
+                idx === index ? { ...tier, cost: 0 } : tier
+            ));
+            event.preventDefault();
+        }
+
+        if (supportTiers[index].cost === 0 && /^[0-9]$/.test(key)) {
+            setSupportTiers(supportTiers.map((tier, idx) =>
+                idx === index ? { ...tier, cost: parseInt(key, 10) } : tier
+            ));
+            event.preventDefault();
+        }
+    };
+
     const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0] || null;
         setImage(file);
     };
 
-    const handleSubmit = async (event: React.FormEvent) => {
-        event.preventDefault();
-        if (!user) {
-            setError('User must be logged in');
-            return;
+    const validateFields = () => {
+        if (!title.trim()) {
+            return "Petition title cannot be blank.";
+        }
+
+        if (!description.trim()) {
+            return "Petition description cannot be blank.";
+        }
+
+        if (!categoryId) {
+            return "Please select a category.";
+        }
+
+        const titles = supportTiers.map(tier => tier.title.trim());
+        const uniqueTitles = new Set(titles);
+
+        if (titles.some(title => title === "")) {
+            return "Support tier titles cannot be blank.";
+        }
+
+        if (supportTiers.some(tier => tier.description.trim() === "")) {
+            return "Support tier descriptions cannot be blank.";
+        }
+
+        if (titles.length !== uniqueTitles.size) {
+            return "Support tier titles must be unique.";
         }
 
         if (!image) {
-            setError('Please upload an image');
+            return "Please upload an image.";
+        }
+
+        if (image.size > MAX_IMAGE_SIZE) {
+            return `Image size should not exceed ${MAX_IMAGE_SIZE / (1024 * 1024)} MB.`;
+        }
+
+        if (!ALLOWED_IMAGE_TYPES.includes(image.type)) {
+            return `Invalid image type. Allowed types are: ${ALLOWED_IMAGE_TYPES.join(', ')}.`;
+        }
+
+        return null;
+    };
+
+    const handleSubmit = async (event: React.FormEvent) => {
+        event.preventDefault();
+        if (!user) {
+            setError('You must be logged in to create a petition.');
             return;
         }
 
-        if (title && description && categoryId && supportTiers.length >= 1 && supportTiers.length <= 3 && image) {
-            try {
-                const petitionData = {
-                    title,
-                    description,
-                    categoryId,
-                    supportTiers
-                };
+        const validationError = validateFields();
+        if (validationError) {
+            setError(validationError);
+            return;
+        }
 
-                const petitionResponse = await axios.post(`${API_HOST}/petitions`, petitionData, {
-                    headers: {
-                        'X-Authorization': user.token
-                    }
-                });
+        try {
+            const petitionData = {
+                title,
+                description,
+                categoryId,
+                supportTiers
+            };
 
-                // Read the file as an ArrayBuffer to send raw binary data
+            const petitionResponse = await axios.post(`${API_HOST}/petitions`, petitionData, {
+                headers: {
+                    'X-Authorization': user.token
+                }
+            });
+
+            // Ensure image is not null before reading it as an ArrayBuffer
+            if (image) {
                 const imageData = await image.arrayBuffer();
                 const imageType = image.type; // Get the image type
 
@@ -91,147 +162,175 @@ const CreatePetition: React.FC = () => {
                         'X-Authorization': user.token
                     }
                 });
-
-                // Clear form and error
-                setTitle('');
-                setDescription('');
-                setCategoryId('');
-                setSupportTiers([{ title: '', description: '', cost: 0 }]);
-                setImage(null);
-                setError('');
-
-                // Navigate to the Petitions page
-                navigate('/petitions');
-            } catch (err) {
-                setError('Error creating petition');
+            } else {
+                throw new Error('Image is null');
             }
-        } else {
-            setError('Please fill in all required fields correctly');
+
+            // Clear form and error
+            setTitle('');
+            setDescription('');
+            setCategoryId('');
+            setSupportTiers([{ title: '', description: '', cost: 0 }]);
+            setImage(null);
+            setError('');
+
+            // Navigate to the Petitions page
+            navigate('/petitions');
+        } catch (err) {
+            if (axios.isAxiosError(err) && err.response) {
+                const statusText = err.response.statusText;
+                switch (err.response.status) {
+                    case 400:
+                        if (statusText.includes("data/title must NOT have fewer than 1 characters")) {
+                            setError("Petition title cannot be empty.");
+                        } else if (statusText.includes("data/description must NOT have fewer than 1 characters")) {
+                            setError("Petition description cannot be empty.");
+                        } else if (statusText.includes("photo must be image/jpeg, image/png, image/gif type")) {
+                            setError("Invalid image type. Allowed types are: image/jpeg, image/png, image/gif.");
+                        } else {
+                            setError('Invalid information. Please check your input.');
+                        }
+                        break;
+                    case 403:
+                        setError('You are not authorized to create this petition.');
+                        break;
+                    case 413:
+                        setError('The uploaded image is too large. Please upload an image smaller than 5MB.');
+                        break;
+                    default:
+                        setError('An unexpected error occurred. Please try again.');
+                }
+            } else {
+                setError('Unable to connect to the server. Please try again later.');
+            }
         }
     };
 
     return (
-        <Box>
+        <ThemeProvider theme={theme}>
             <NavBar />
-            <Box sx={{ padding: 2 }}>
-                <Paper elevation={3} sx={{ padding: 3 }}>
-                    <Typography variant="h4" gutterBottom>Create Petition</Typography>
-                    {error && <Typography color="error">{error}</Typography>}
-                    <form onSubmit={handleSubmit}>
-                        <Grid container spacing={2}>
-                            <Grid item xs={12}>
-                                <TextField
-                                    label="Title"
-                                    value={title}
-                                    onChange={(e) => setTitle(e.target.value)}
-                                    fullWidth
-                                    required
-                                    InputLabelProps={{ shrink: true }}
-                                />
-                            </Grid>
-                            <Grid item xs={12}>
-                                <TextField
-                                    label="Description"
-                                    value={description}
-                                    onChange={(e) => setDescription(e.target.value)}
-                                    fullWidth
-                                    required
-                                    multiline
-                                    InputLabelProps={{ shrink: true }}
-                                />
-                            </Grid>
-                            <Grid item xs={12}>
-                                <TextField
-                                    select
-                                    label="Category"
-                                    value={categoryId}
-                                    onChange={(e) => setCategoryId(e.target.value)}
-                                    fullWidth
-                                    required
-                                    InputLabelProps={{ shrink: true }}
-                                >
-                                    {categories.map((category: Category) => (
-                                        <MenuItem key={category.categoryId} value={category.categoryId}>
-                                            {category.name}
-                                        </MenuItem>
-                                    ))}
-                                </TextField>
-                            </Grid>
-                            {supportTiers.map((tier, index) => (
-                                <React.Fragment key={index}>
-                                    <Grid item xs={12}>
-                                        <TextField
-                                            label={`Support Tier ${index + 1} Title`}
-                                            value={tier.title}
-                                            onChange={(e) => handleTierChange(index, 'title', e.target.value)}
-                                            fullWidth
-                                            required
-                                            InputLabelProps={{ shrink: true }}
-                                        />
-                                    </Grid>
-                                    <Grid item xs={12}>
-                                        <TextField
-                                            label={`Support Tier ${index + 1} Description`}
-                                            value={tier.description}
-                                            onChange={(e) => handleTierChange(index, 'description', e.target.value)}
-                                            fullWidth
-                                            required
-                                            multiline
-                                            InputLabelProps={{ shrink: true }}
-                                        />
-                                    </Grid>
-                                    <Grid item xs={12}>
-                                        <TextField
-                                            label={`Support Tier ${index + 1} Cost`}
-                                            type="number"
-                                            value={tier.cost}
-                                            onChange={(e) => handleTierChange(index, 'cost', parseFloat(e.target.value))}
-                                            fullWidth
-                                            required
-                                            InputLabelProps={{ shrink: true }}
-                                        />
-                                    </Grid>
-                                    {supportTiers.length > 1 && (
-                                        <Grid item xs={12}>
-                                            <Button variant="contained" color="secondary" onClick={() => handleRemoveTier(index)}>
-                                                Remove Tier
-                                            </Button>
-                                        </Grid>
-                                    )}
-                                </React.Fragment>
-                            ))}
-                            <Grid item xs={12}>
-                                <Button
-                                    variant="contained"
-                                    onClick={handleAddTier}
-                                    disabled={supportTiers.length >= 3}
-                                >
-                                    Add Support Tier
-                                </Button>
-                            </Grid>
-                            <Grid item xs={12}>
-                                <Button
-                                    variant="contained"
-                                    component="label"
-                                >
-                                    Upload Image
-                                    <input
-                                        type="file"
-                                        hidden
-                                        accept="image/png, image/jpeg, image/gif"
-                                        onChange={handleImageChange}
-                                    />
-                                </Button>
-                                {image && <Typography>{image.name}</Typography>}
-                            </Grid>
-                            <Grid item xs={12}>
-                                <Button variant="contained" color="primary" type="submit">Create Petition</Button>
-                            </Grid>
+            <CssBaseline />
+            <Container component="main" maxWidth="md" sx={{ mt: 8, mb: 4 }}>
+                <Paper elevation={3} sx={{ p: 3 }}>
+                    <Grid container spacing={2}>
+                        <Grid item xs={12}>
+                            <TextField
+                                label="Title"
+                                fullWidth
+                                value={title}
+                                onChange={(e) => setTitle(e.target.value)}
+                                required
+                                InputLabelProps={{ shrink: true }}
+                            />
                         </Grid>
-                    </form>
+                        <Grid item xs={12}>
+                            <TextField
+                                label="Description"
+                                fullWidth
+                                multiline
+                                value={description}
+                                onChange={(e) => setDescription(e.target.value)}
+                                required
+                                InputLabelProps={{ shrink: true }}
+                            />
+                        </Grid>
+                        <Grid item xs={12}>
+                            <TextField
+                                select
+                                label="Category"
+                                value={categoryId}
+                                onChange={(e) => setCategoryId(e.target.value)}
+                                fullWidth
+                                required
+                                InputLabelProps={{ shrink: true }}
+                            >
+                                {categories.map((category: Category) => (
+                                    <MenuItem key={category.categoryId} value={category.categoryId}>
+                                        {category.name}
+                                    </MenuItem>
+                                ))}
+                            </TextField>
+                        </Grid>
+                        {supportTiers.map((tier, index) => (
+                            <Grid item xs={12} key={index}>
+                                <Paper sx={{ p: 2 }}>
+                                    <Typography variant="h6">Support Tier {index + 1}</Typography>
+                                    <TextField
+                                        label="Title"
+                                        fullWidth
+                                        value={tier.title}
+                                        onChange={(e) => handleTierChange(index, 'title', e.target.value)}
+                                        sx={{ mb: 1 }}
+                                        required
+                                        InputLabelProps={{ shrink: true }}
+                                    />
+                                    <TextField
+                                        label="Description"
+                                        fullWidth
+                                        multiline
+                                        value={tier.description}
+                                        onChange={(e) => handleTierChange(index, 'description', e.target.value)}
+                                        sx={{ mb: 1 }}
+                                        required
+                                        InputLabelProps={{ shrink: true }}
+                                    />
+                                    <TextField
+                                        label="Cost"
+                                        type="number"
+                                        fullWidth
+                                        value={tier.cost}
+                                        onChange={(e) => handleTierChange(index, 'cost', e.target.value === '' ? 0 : parseFloat(e.target.value))}
+                                        sx={{ mb: 1 }}
+                                        required
+                                        InputLabelProps={{ shrink: true }}
+                                        InputProps={{
+                                            onKeyDown: handleCostKeyDown(index),
+                                            inputProps: { min: 0 }
+                                        }}
+                                    />
+                                    <Button
+                                        variant="contained"
+                                        color="secondary"
+                                        onClick={() => handleRemoveTier(index)}
+                                        disabled={supportTiers.length === 1}
+                                    >
+                                        Remove Tier
+                                    </Button>
+                                </Paper>
+                            </Grid>
+                        ))}
+                        <Grid item xs={12}>
+                            <Button variant="contained" onClick={handleAddTier} disabled={supportTiers.length >= 3}>
+                                Add Support Tier
+                            </Button>
+                        </Grid>
+                        <Grid item xs={12}>
+                            <Button
+                                variant="contained"
+                                component="label"
+                            >
+                                Upload Image
+                                <input
+                                    type="file"
+                                    hidden
+                                    accept="image/png, image/jpeg, image/gif"
+                                    onChange={handleImageChange}
+                                />
+                            </Button>
+                            {image && <Typography>{image.name}</Typography>}
+                        </Grid>
+                        <Grid item xs={12}>
+                            <Button onClick={handleSubmit} variant="contained" color="primary">
+                                Create Petition
+                            </Button>
+                        </Grid>
+                        <Grid item xs={12}>
+                            {error && <Alert severity="error">{error}</Alert>}
+                        </Grid>
+                    </Grid>
                 </Paper>
-            </Box>
-        </Box>
+            </Container>
+        </ThemeProvider>
     );
 };
 
