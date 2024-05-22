@@ -95,28 +95,62 @@ const EditPetition: React.FC = () => {
             const updatedTiers = supportTiers.filter(tier => originalTiers.some(orig => orig.supportTierId === tier.supportTierId && (tier.title !== orig.title || tier.description !== orig.description || tier.cost !== orig.cost)));
             const deletedTiers = originalTiers.filter(orig => !supportTiers.some(tier => tier.supportTierId === orig.supportTierId));
 
-            for (const tier of addedTiers) {
-                await axios.put(`${API_HOST}/petitions/${id}/supportTiers`, tier, {
-                    headers: { 'X-Authorization': user.token }
-                });
-            }
+            // Handle deleted tiers
+            const processDeletion = async () => {
+                for (const tier of deletedTiers) {
+                    try {
+                        await axios.delete(`${API_HOST}/petitions/${id}/supportTiers/${tier.supportTierId}`, {
+                            headers: { 'X-Authorization': user.token }
+                        });
+                    } catch (err: unknown) {
+                        if (axios.isAxiosError(err) && err.response && err.response.status === 403 && err.response.statusText.includes("A petition must have at least 1 support tier")) {
+                            if (addedTiers.length > 0) {
+                                await axios.put(`${API_HOST}/petitions/${id}/supportTiers`, addedTiers[0], {
+                                    headers: { 'X-Authorization': user.token }
+                                });
+                                addedTiers.shift(); // Remove the first added tier after successful addition
+                            }
+                            await axios.delete(`${API_HOST}/petitions/${id}/supportTiers/${tier.supportTierId}`, {
+                                headers: { 'X-Authorization': user.token }
+                            });
+                        } else {
+                            throw err;
+                        }
+                    }
+                }
+            };
 
-            for (const tier of updatedTiers) {
-                await axios.patch(`${API_HOST}/petitions/${id}/supportTiers/${tier.supportTierId}`, tier, {
-                    headers: { 'X-Authorization': user.token }
-                });
-            }
+            // Handle added tiers
+            const processAddition = async () => {
+                for (const tier of addedTiers) {
+                    await axios.put(`${API_HOST}/petitions/${id}/supportTiers`, tier, {
+                        headers: { 'X-Authorization': user.token }
+                    });
+                }
+            };
 
-            for (const tier of deletedTiers) {
-                await axios.delete(`${API_HOST}/petitions/${id}/supportTiers/${tier.supportTierId}`, {
-                    headers: { 'X-Authorization': user.token }
-                });
-            }
+            // Handle updated tiers
+            const processUpdate = async () => {
+                for (const tier of updatedTiers) {
+                    await axios.patch(`${API_HOST}/petitions/${id}/supportTiers/${tier.supportTierId}`, tier, {
+                        headers: { 'X-Authorization': user.token }
+                    });
+                }
+            };
+
+            await processDeletion();
+            await processAddition();
+            await processUpdate();
 
             navigate('/petitions');
-        } catch (err) {
-            console.error('Error updating petition:', err);
-            setError('Failed to update petition');
+        } catch (err: unknown) {
+            if (axios.isAxiosError(err)) {
+                console.error('Error updating petition:', err.message);
+                setError('Failed to update petition');
+            } else {
+                console.error('Unexpected error:', err);
+                setError('An unexpected error occurred');
+            }
         }
     };
 
