@@ -1,415 +1,197 @@
-import React, { useEffect, useState, ChangeEvent } from 'react';
-import { useParams } from 'react-router-dom';
-import {
-    Alert,
-    Button,
-    Card,
-    Container,
-    FormControl,
-    Grid,
-    IconButton,
-    InputLabel,
-    MenuItem,
-    Select,
-    SelectChangeEvent,
-    Snackbar,
-    TextField,
-    Typography
-} from '@mui/material';
-import { Delete, Add as AddIcon } from '@mui/icons-material';
+import React, { useEffect, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { TextField, Button, Typography, MenuItem, Select, FormControl, InputLabel, Paper, Container, CssBaseline, ThemeProvider, createTheme, Grid } from '@mui/material';
 import axios from 'axios';
 import { API_HOST } from '../../config';
 import { useUserStore } from '../store';
 import NavBar from './NavBar';
 
-interface PetitionFormData {
-    title: string;
-    description: string;
-    categoryId: number;
-}
+const theme = createTheme();
 
-interface TierData {
-    supportTiers: SupportTier[]
-}
-
-interface SupportTier {
-    title: string;
-    description: string;
-    cost: number;
-    supportTierId: number;
-}
-
-interface Category {
-    categoryId: number;
-    name: string;
-}
-
-interface Supporter {
-    supportId: number;
-    supportTierId: number;
-    message: string;
-    supporterId: number;
-    supporterFirstName: string;
-    supporterLastName: string;
-    timestamp: string;
-    supporterImageUrl?: string;
-}
-
-const EditPetition = () => {
-    const { id } = useParams();
-    const [petitionData, setPetitionData] = useState<PetitionFormData>({
-        title: '',
-        description: '',
-        categoryId: 0
-    });
-
-    const [tierData, setTierData] = useState<TierData>({ supportTiers: [] });
-    const [staticTierData, setStaticTierData] = useState<TierData>({ supportTiers: [] });
-    const [categories, setCategories] = useState<Category[]>([]);
-    const [supporters, setSupporters] = useState<Supporter[]>([]);
-    const [selectedFile, setSelectedFile] = useState<File | null>(null);
-    const [snackMessage, setSnackMessage] = useState("");
-    const [snackOpenSuccess, setSnackOpenSuccess] = useState(false);
-    const [snackOpenFail, setSnackOpenFail] = useState(false);
-    const [updateFlag, setUpdateFlag] = useState<number>(1);
-    const [cancel, setCancel] = useState<number>(1);
-
+const EditPetition: React.FC = () => {
+    const { id } = useParams<{ id: string }>();
+    const navigate = useNavigate();
     const { user } = useUserStore();
+    const [petition, setPetition] = useState<any>(null);
+    const [title, setTitle] = useState('');
+    const [description, setDescription] = useState('');
+    const [categoryId, setCategoryId] = useState<number | string>('');
+    const [categories, setCategories] = useState<any[]>([]);
+    const [supportTiers, setSupportTiers] = useState<any[]>([]);
+    const [originalTiers, setOriginalTiers] = useState<any[]>([]);
+    const [error, setError] = useState<string>('');
 
     useEffect(() => {
-        getPetitionInfo();
-        getSupporters();
-        getCategories();
-    }, [updateFlag, cancel]);
-
-    const compareTiers = () => {
-        const newSupportTiers: SupportTier[] = [];
-        const changedSupportTiers: SupportTier[] = [];
-        const deletedSupportTiers: SupportTier[] = [];
-
-        tierData.supportTiers.forEach(tier => {
-            const staticTier = staticTierData.supportTiers.find(staticTier => staticTier.supportTierId === tier.supportTierId);
-
-            if (!staticTier) {
-                newSupportTiers.push(tier);
-            } else if (
-                tier.title !== staticTier.title ||
-                tier.description !== staticTier.description ||
-                tier.cost !== staticTier.cost
-            ) {
-                changedSupportTiers.push(tier);
-            }
-        });
-
-        staticTierData.supportTiers.forEach(staticTier => {
-            const existingTier = tierData.supportTiers.find(tier => tier.supportTierId === staticTier.supportTierId);
-            if (!existingTier) {
-                deletedSupportTiers.push(staticTier);
-            }
-        });
-
-        return {
-            newSupportTiers,
-            changedSupportTiers,
-            deletedSupportTiers
-        };
-    };
-
-    const getPetitionInfo = async () => {
-        if (!id?.match(/^\d+$/)) {
-            setSnackMessage("404 Not Found");
-            setSnackOpenFail(true);
-        } else {
-            try {
-                const response = await axios.get(`${API_HOST}/petitions/${id}/`);
-                setPetitionData({
-                    title: response.data.title,
-                    description: response.data.description,
-                    categoryId: response.data.categoryId
+        if (id) {
+            axios.get(`${API_HOST}/petitions/${id}`)
+                .then(response => {
+                    const data = response.data;
+                    setPetition(data);
+                    setTitle(data.title);
+                    setDescription(data.description);
+                    setCategoryId(data.categoryId);
+                    setSupportTiers(data.supportTiers || []);
+                    setOriginalTiers(data.supportTiers || []);
+                })
+                .catch(err => {
+                    console.error('Error fetching petition details:', err);
+                    setError('Failed to load petition details');
                 });
 
-                setTierData({ supportTiers: response.data.supportTiers });
-                setStaticTierData({ supportTiers: response.data.supportTiers });
-            } catch (error) {
-                setSnackMessage((error as Error).message);
-                setSnackOpenFail(true);
-            }
-
-            try {
-                await axios.get(`${API_HOST}/petitions/${id}/image`);
-            } catch {
-                // Image not found or error fetching image
-            }
-        }
-    };
-
-    const getSupporters = async () => {
-        if (!id?.match(/^\d+$/)) {
-            setSnackMessage("404 Not Found");
-            setSnackOpenFail(true);
+            axios.get(`${API_HOST}/petitions/categories`)
+                .then(response => {
+                    setCategories(response.data);
+                })
+                .catch(() => {
+                    setError('Error fetching categories');
+                });
         } else {
-            try {
-                const response = await axios.get(`${API_HOST}/petitions/${id}/supporters/`);
-                setSupporters(response.data);
-            } catch (error) {
-                setSnackMessage((error as Error).message);
-                setSnackOpenFail(true);
-            }
+            setError('Petition ID is not specified in the URL');
         }
+    }, [id]);
+
+    const validateTiers = () => {
+        const titles = supportTiers.map(tier => tier.title.trim());
+        const uniqueTitles = new Set(titles);
+
+        if (titles.some(title => title === "")) {
+            return "Support tier titles cannot be blank.";
+        }
+
+        if (supportTiers.some(tier => tier.description.trim() === "")) {
+            return "Support tier descriptions cannot be blank.";
+        }
+
+        if (titles.length !== uniqueTitles.size) {
+            return "Support tier titles must be unique.";
+        }
+
+        return null;
     };
 
-    const getCategories = async () => {
+    const handleUpdate = async () => {
+        if (!user) {
+            setError('You must be logged in to edit a petition.');
+            return;
+        }
+        if (!id || user.id !== petition.ownerId) {
+            setError('You are not authorized to edit this petition.');
+            return;
+        }
+
+        const validationError = validateTiers();
+        if (validationError) {
+            setError(validationError);
+            return;
+        }
+
+        const updateData = { title, description, categoryId };
         try {
-            const response = await axios.get(`${API_HOST}/petitions/categories/`);
-            setCategories(response.data);
-        } catch (error) {
-            setSnackMessage((error as Error).message);
-            setSnackOpenFail(true);
-        }
-    };
+            await axios.patch(`${API_HOST}/petitions/${id}`, updateData, {
+                headers: { 'X-Authorization': user.token }
+            });
 
-    const handleSubmit = async () => {
-        try {
-            await axios.patch(`${API_HOST}/petitions/${id}`, petitionData, { headers: { 'X-Authorization': user?.token } });
+            const addedTiers = supportTiers.filter(tier => !tier.supportTierId);
+            const updatedTiers = supportTiers.filter(tier => originalTiers.some(orig => orig.supportTierId === tier.supportTierId && (tier.title !== orig.title || tier.description !== orig.description || tier.cost !== orig.cost)));
+            const deletedTiers = originalTiers.filter(orig => !supportTiers.some(tier => tier.supportTierId === orig.supportTierId));
 
-            if (selectedFile !== null) {
-                await axios.put(`${API_HOST}/petitions/${id}/image`, selectedFile, { headers: { 'X-Authorization': user?.token, "Content-Type": selectedFile.type } });
+            for (const tier of addedTiers) {
+                await axios.put(`${API_HOST}/petitions/${id}/supportTiers`, tier, {
+                    headers: { 'X-Authorization': user.token }
+                });
             }
 
-            const { newSupportTiers, changedSupportTiers, deletedSupportTiers } = compareTiers();
-            await Promise.all([
-                ...deletedSupportTiers.map(deletedTier => axios.delete(`${API_HOST}/petitions/${id}/supportTiers/${deletedTier.supportTierId}`, { headers: { 'X-Authorization': user?.token } })),
-                ...newSupportTiers.map(newTier => axios.post(`${API_HOST}/petitions/${id}/supportTiers`, newTier, { headers: { 'X-Authorization': user?.token } })),
-                ...changedSupportTiers.map(changedTier => axios.patch(`${API_HOST}/petitions/${id}/supportTiers/${changedTier.supportTierId}`, changedTier, { headers: { 'X-Authorization': user?.token } }))
-            ]);
+            for (const tier of updatedTiers) {
+                await axios.patch(`${API_HOST}/petitions/${id}/supportTiers/${tier.supportTierId}`, tier, {
+                    headers: { 'X-Authorization': user.token }
+                });
+            }
 
-            setSnackMessage("Successfully Updated Petition");
-            setSnackOpenSuccess(true);
-            setUpdateFlag(updateFlag * -1);
-        } catch (error) {
-            setSnackMessage((error as Error).message);
-            setSnackOpenFail(true);
+            for (const tier of deletedTiers) {
+                await axios.delete(`${API_HOST}/petitions/${id}/supportTiers/${tier.supportTierId}`, {
+                    headers: { 'X-Authorization': user.token }
+                });
+            }
+
+            navigate('/petitions');
+        } catch (err) {
+            console.error('Error updating petition:', err);
+            setError('Failed to update petition');
         }
     };
 
-    const handleCancel = () => {
-        setCancel(cancel * -1);
-        setSelectedFile(null);
-    };
-
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | SelectChangeEvent<number>) => {
-        const { name, value } = e.target;
-        setPetitionData((prevData) => ({
-            ...prevData,
-            [name]: name === 'categoryId' ? Number(value) : value
-        }));
-    };
-
-    const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
-        if (event.target.files && event.target.files.length > 0) {
-            setSelectedFile(event.target.files[0]);
-        }
-    };
-
-    const handleSnackCloseSuccess = (reason?: string) => {
-        if (reason === 'clickaway') return;
-        setSnackOpenSuccess(false);
-    };
-
-    const handleSnackCloseFail = (reason?: string) => {
-        if (reason === 'clickaway') return;
-        setSnackOpenFail(false);
-    };
-
-    const handleTierChange = (index: number, field: string, value: string | number) => {
-        setTierData((prevData) => {
-            const updatedTiers = [...prevData.supportTiers];
-            updatedTiers[index] = { ...updatedTiers[index], [field]: value };
-            return { ...prevData, supportTiers: updatedTiers };
-        });
+    const handleTierChange = (index: number, field: string, value: any) => {
+        const updatedTiers = supportTiers.map((tier, idx) => idx === index ? { ...tier, [field]: value } : tier);
+        setSupportTiers(updatedTiers);
     };
 
     const handleAddTier = () => {
-        if (tierData.supportTiers.length < 3) {
-            setTierData((prevData) => ({
-                ...prevData,
-                supportTiers: [...prevData.supportTiers, { title: '', description: '', cost: 0, supportTierId: 0 }],
-            }));
+        if (supportTiers.length < 3) {
+            setSupportTiers([...supportTiers, { title: '', description: '', cost: 0 }]);
+        } else {
+            setError('Cannot have more than 3 support tiers');
         }
     };
 
     const handleRemoveTier = (index: number) => {
-        setTierData((prevData) => ({
-            ...prevData,
-            supportTiers: prevData.supportTiers.filter((_, i) => i !== index),
-        }));
+        const updatedTiers = supportTiers.filter((_, idx) => idx !== index);
+        setSupportTiers(updatedTiers);
     };
-
-    const hasSupporters = (supportTierId: number): boolean => {
-        return supporters.some(supporter => supporter.supportTierId === supportTierId);
-    };
-
-    const displayPetitionDetails = () => (
-        <div>
-            <TextField
-                fullWidth
-                required
-                label="Title"
-                name="title"
-                value={petitionData.title}
-                onChange={handleChange}
-                margin="normal"
-            />
-            <TextField
-                fullWidth
-                required
-                label="Description"
-                name="description"
-                value={petitionData.description}
-                onChange={handleChange}
-                margin="normal"
-                multiline
-                rows={4}
-            />
-            <FormControl fullWidth margin="normal">
-                <InputLabel id="category-label">Category</InputLabel>
-                <Select
-                    labelId="category-label"
-                    id="category"
-                    value={petitionData.categoryId}
-                    onChange={handleChange}
-                    name="categoryId"
-                    required
-                >
-                    {categories.map((category) => (
-                        <MenuItem key={category.categoryId} value={category.categoryId}>
-                            {category.name}
-                        </MenuItem>
-                    ))}
-                </Select>
-            </FormControl>
-            {displayImage()}
-        </div>
-    );
-
-    const displayTiers = () => (
-        <Card variant="outlined">
-            <div className="scrollable-container">
-                {tierData.supportTiers.map((tier, index) => (
-                    <Container key={index}>
-                        <Typography variant="h6">
-                            Support Tier {index + 1}
-                            {tierData.supportTiers.length > 1 && !hasSupporters(tier.supportTierId) && (
-                                <IconButton onClick={() => handleRemoveTier(index)} aria-label="delete">
-                                    <Delete />
-                                </IconButton>
-                            )}
-                        </Typography>
-                        <TextField
-                            fullWidth
-                            required
-                            label="Title"
-                            value={tier.title}
-                            onChange={(e) => handleTierChange(index, 'title', e.target.value)}
-                            margin="normal"
-                        />
-                        <TextField
-                            fullWidth
-                            required
-                            label="Description"
-                            value={tier.description}
-                            onChange={(e) => handleTierChange(index, 'description', e.target.value)}
-                            margin="normal"
-                            multiline
-                            rows={4}
-                        />
-                        <TextField
-                            fullWidth
-                            required
-                            type="number"
-                            label="Cost"
-                            value={tier.cost}
-                            onChange={(e) => handleTierChange(index, 'cost', parseFloat(e.target.value))}
-                            margin="normal"
-                        />
-                    </Container>
-                ))}
-                {tierData.supportTiers.length < 3 && (
-                    <Button onClick={handleAddTier} variant="outlined" startIcon={<AddIcon />} color="primary">
-                        Add Support Tier
-                    </Button>
-                )}
-            </div>
-        </Card>
-    );
-
-    const displayImage = () => (
-        <div>
-            {selectedFile ? (
-                <img src={URL.createObjectURL(selectedFile)} width={250} height={250} style={{ borderRadius: '50%' }} alt='Hero' />
-            ) : (
-                <img src={`${API_HOST}/petitions/${id}/image`} width={250} height={250} style={{ borderRadius: '50%' }} alt='Hero' />
-            )}
-            <TextField
-                fullWidth
-                color="secondary"
-                type="file"
-                onChange={handleFileChange}
-            />
-        </div>
-    );
-
-    const displaySnack = () => (
-        <div>
-            <Snackbar
-                autoHideDuration={6000}
-                open={snackOpenSuccess}
-                onClose={() => handleSnackCloseSuccess()}
-                key={snackMessage}>
-                <Alert onClose={() => handleSnackCloseSuccess()} severity="success" sx={{ width: '100%' }}>
-                    {snackMessage}
-                </Alert>
-            </Snackbar>
-            <Snackbar
-                autoHideDuration={6000}
-                open={snackOpenFail}
-                onClose={() => handleSnackCloseFail()}
-                key={snackMessage}>
-                <Alert onClose={() => handleSnackCloseFail()} severity="error" sx={{ width: '100%' }}>
-                    {snackMessage}
-                </Alert>
-            </Snackbar>
-        </div>
-    );
 
     return (
-        <div>
+        <ThemeProvider theme={theme}>
             <NavBar />
-            <Typography variant="h4" gutterBottom>
-                Edit Petition
-            </Typography>
-            <Grid container spacing={2}>
-                <Grid item xs={12} sm={6}>
-                    <Container>
-                        <Typography variant="h6">
-                            Petition Details
-                        </Typography>
-                        {displayPetitionDetails()}
-                        <Button type="submit" variant="outlined" color="primary" onClick={handleCancel}>
-                            Revert Changes
-                        </Button>
-                        <Button type="submit" variant="contained" color="primary" onClick={handleSubmit}>
-                            Submit Changes
-                        </Button>
-                    </Container>
-                </Grid>
-                <Grid item xs={12} sm={6} justifyContent="center">
-                    {displayTiers()}
-                </Grid>
-            </Grid>
-            {displaySnack()}
-        </div>
+            <CssBaseline />
+            <Container component="main" maxWidth="md" sx={{ mt: 8, mb: 4 }}>
+                <Paper elevation={3} sx={{ p: 3 }}>
+                    {error && <Typography color="error">{error}</Typography>}
+                    <Grid container spacing={2}>
+                        <Grid item xs={12}>
+                            <TextField label="Title" fullWidth value={title} onChange={(e) => setTitle(e.target.value)} />
+                        </Grid>
+                        <Grid item xs={12}>
+                            <TextField label="Description" fullWidth multiline value={description} onChange={(e) => setDescription(e.target.value)} />
+                        </Grid>
+                        <Grid item xs={12}>
+                            <FormControl fullWidth>
+                                <InputLabel>Category</InputLabel>
+                                <Select value={categoryId} label="Category" onChange={(e) => setCategoryId(e.target.value)}>
+                                    {categories.map((category) => (
+                                        <MenuItem key={category.categoryId} value={category.categoryId}>
+                                            {category.name}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        </Grid>
+                        {supportTiers.map((tier, index) => (
+                            <Grid item xs={12} key={index}>
+                                <Paper sx={{ p: 2 }}>
+                                    <Typography variant="h6">Support Tier {index + 1}</Typography>
+                                    <TextField label="Title" fullWidth value={tier.title} onChange={(e) => handleTierChange(index, 'title', e.target.value)} sx={{ mb: 1 }} />
+                                    <TextField label="Description" fullWidth multiline value={tier.description} onChange={(e) => handleTierChange(index, 'description', e.target.value)} sx={{ mb: 1 }} />
+                                    <TextField label="Cost" type="number" fullWidth value={tier.cost} onChange={(e) => handleTierChange(index, 'cost', Number(e.target.value))} sx={{ mb: 1 }} />
+                                    <Button variant="contained" color="secondary" onClick={() => handleRemoveTier(index)} disabled={supportTiers.length === 1}>
+                                        Remove Tier
+                                    </Button>
+                                </Paper>
+                            </Grid>
+                        ))}
+                        <Grid item xs={12}>
+                            <Button variant="contained" onClick={handleAddTier} disabled={supportTiers.length >= 3}>
+                                Add Support Tier
+                            </Button>
+                        </Grid>
+                        <Grid item xs={12}>
+                            <Button onClick={handleUpdate} variant="contained" color="primary">
+                                Update Petition
+                            </Button>
+                        </Grid>
+                    </Grid>
+                </Paper>
+            </Container>
+        </ThemeProvider>
     );
-}
+};
 
 export default EditPetition;
