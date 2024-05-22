@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { TextField, Button, Typography, MenuItem, Select, FormControl, InputLabel, Paper, Container, CssBaseline, ThemeProvider, createTheme, Grid } from '@mui/material';
+import { TextField, Button, Typography, MenuItem, Select, FormControl, InputLabel, Paper, Container, CssBaseline, ThemeProvider, createTheme, Grid, Alert } from '@mui/material';
 import axios from 'axios';
 import { API_HOST } from '../../config';
 import { useUserStore } from '../store';
@@ -144,12 +144,26 @@ const EditPetition: React.FC = () => {
 
             navigate('/petitions');
         } catch (err: unknown) {
-            if (axios.isAxiosError(err)) {
-                console.error('Error updating petition:', err.message);
-                setError('Failed to update petition');
+            if (axios.isAxiosError(err) && err.response) {
+                const statusText = err.response.statusText;
+                switch (err.response.status) {
+                    case 400:
+                        if (statusText.includes("data/title must NOT have fewer than 1 characters")) {
+                            setError("Petition title cannot be empty.");
+                        } else if (statusText.includes("data/description must NOT have fewer than 1 characters")) {
+                            setError("Petition description cannot be empty.");
+                        } else {
+                            setError('Invalid information. Please check your input.');
+                        }
+                        break;
+                    case 403:
+                        setError('You are not authorized to edit this petition.');
+                        break;
+                    default:
+                        setError('An unexpected error occurred. Please try again.');
+                }
             } else {
-                console.error('Unexpected error:', err);
-                setError('An unexpected error occurred');
+                setError('Unable to connect to the server. Please try again later.');
             }
         }
     };
@@ -178,7 +192,6 @@ const EditPetition: React.FC = () => {
             <CssBaseline />
             <Container component="main" maxWidth="md" sx={{ mt: 8, mb: 4 }}>
                 <Paper elevation={3} sx={{ p: 3 }}>
-                    {error && <Typography color="error">{error}</Typography>}
                     <Grid container spacing={2}>
                         <Grid item xs={12}>
                             <TextField label="Title" fullWidth value={title} onChange={(e) => setTitle(e.target.value)} />
@@ -220,6 +233,9 @@ const EditPetition: React.FC = () => {
                             <Button onClick={handleUpdate} variant="contained" color="primary">
                                 Update Petition
                             </Button>
+                        </Grid>
+                        <Grid item xs={12}>
+                            {error && <Alert severity="error">{error}</Alert>}
                         </Grid>
                     </Grid>
                 </Paper>

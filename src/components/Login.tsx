@@ -108,7 +108,6 @@ export default function SignIn() {
                                 id="password"
                                 autoComplete="current-password"
                             />
-                            {error && <Alert severity="error">{error}</Alert>}
                             <Button
                                 type="submit"
                                 fullWidth
@@ -122,8 +121,9 @@ export default function SignIn() {
                                 }}
                                 disabled={loading}
                             >
-                                {loading ? <CircularProgress size={24} /> : 'Sign In'}
+                                {loading ? <CircularProgress size={24} /> : 'Login'}
                             </Button>
+                            {error && <Alert severity="error">{error}</Alert>}
                             <Grid container justifyContent="flex-end">
                                 <Grid item>
                                     <Link onClick={() => navigate('/register')} variant="body2" sx={{ cursor: 'pointer' }}>
