@@ -19,6 +19,7 @@ const EditPetition: React.FC = () => {
     const [categories, setCategories] = useState<any[]>([]);
     const [supportTiers, setSupportTiers] = useState<any[]>([]);
     const [originalTiers, setOriginalTiers] = useState<any[]>([]);
+    const [supporters, setSupporters] = useState<{ [key: number]: number }>({});
     const [error, setError] = useState<string>('');
 
     useEffect(() => {
@@ -32,6 +33,7 @@ const EditPetition: React.FC = () => {
                     setCategoryId(data.categoryId);
                     setSupportTiers(data.supportTiers || []);
                     setOriginalTiers(data.supportTiers || []);
+                    fetchSupporters(data.supportTiers || []);
                 })
                 .catch(err => {
                     console.error('Error fetching petition details:', err);
@@ -49,6 +51,31 @@ const EditPetition: React.FC = () => {
             setError('Petition ID is not specified in the URL');
         }
     }, [id]);
+
+    const fetchSupporters = (tiers: any[]) => {
+        if (id) {
+            const tierSupportersPromises = tiers.map(tier =>
+                axios.get(`${API_HOST}/petitions/${id}/supporters`, { params: { supportTierId: tier.supportTierId } })
+                    .then(response => ({
+                        supportTierId: tier.supportTierId,
+                        count: response.data.length
+                    }))
+            );
+
+            Promise.all(tierSupportersPromises)
+                .then(results => {
+                    const supportersData: { [key: number]: number } = {};
+                    results.forEach(result => {
+                        supportersData[result.supportTierId] = result.count;
+                    });
+                    setSupporters(supportersData);
+                })
+                .catch(err => {
+                    console.error('Error fetching supporters:', err);
+                    setError('Failed to load supporters data');
+                });
+        }
+    };
 
     const validateTiers = () => {
         const titles = supportTiers.map(tier => tier.title.trim());
@@ -215,10 +242,38 @@ const EditPetition: React.FC = () => {
                             <Grid item xs={12} key={index}>
                                 <Paper sx={{ p: 2 }}>
                                     <Typography variant="h6">Support Tier {index + 1}</Typography>
-                                    <TextField label="Title" fullWidth value={tier.title} onChange={(e) => handleTierChange(index, 'title', e.target.value)} sx={{ mb: 1 }} />
-                                    <TextField label="Description" fullWidth multiline value={tier.description} onChange={(e) => handleTierChange(index, 'description', e.target.value)} sx={{ mb: 1 }} />
-                                    <TextField label="Cost" type="number" fullWidth value={tier.cost} onChange={(e) => handleTierChange(index, 'cost', Number(e.target.value))} sx={{ mb: 1 }} />
-                                    <Button variant="contained" color="secondary" onClick={() => handleRemoveTier(index)} disabled={supportTiers.length === 1}>
+                                    <TextField
+                                        label="Title"
+                                        fullWidth
+                                        value={tier.title}
+                                        onChange={(e) => handleTierChange(index, 'title', e.target.value)}
+                                        sx={{ mb: 1 }}
+                                        disabled={!!supporters[tier.supportTierId]}
+                                    />
+                                    <TextField
+                                        label="Description"
+                                        fullWidth
+                                        multiline
+                                        value={tier.description}
+                                        onChange={(e) => handleTierChange(index, 'description', e.target.value)}
+                                        sx={{ mb: 1 }}
+                                        disabled={!!supporters[tier.supportTierId]}
+                                    />
+                                    <TextField
+                                        label="Cost"
+                                        type="number"
+                                        fullWidth
+                                        value={tier.cost}
+                                        onChange={(e) => handleTierChange(index, 'cost', Number(e.target.value))}
+                                        sx={{ mb: 1 }}
+                                        disabled={!!supporters[tier.supportTierId]}
+                                    />
+                                    <Button
+                                        variant="contained"
+                                        color="secondary"
+                                        onClick={() => handleRemoveTier(index)}
+                                        disabled={supportTiers.length === 1 || !!supporters[tier.supportTierId]}
+                                    >
                                         Remove Tier
                                     </Button>
                                 </Paper>
