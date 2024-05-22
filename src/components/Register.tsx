@@ -42,6 +42,7 @@ export default function Register() {
     const [selectedImage, setSelectedImage] = useState<File | null>(null);
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [isDefaultImage, setIsDefaultImage] = useState<boolean>(true);
     const setUser = useUserStore((state) => state.setUser);
     const navigate = useNavigate();
 
@@ -51,6 +52,11 @@ export default function Register() {
 
     const handleMouseDownPassword = (event: React.MouseEvent<HTMLButtonElement>) => {
         event.preventDefault();
+    };
+
+    const handleImageChange = (file: File | null) => {
+        setSelectedImage(file);
+        setIsDefaultImage(file === null);
     };
 
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -150,9 +156,10 @@ export default function Register() {
                             <Box sx={{ mb: 3 }}>
                                 <ImageUpload
                                     initialImage={defaultAvatarImage}
-                                    onImageChange={setSelectedImage}
+                                    onImageChange={handleImageChange}
                                     onImageRemove={() => setSelectedImage(null)}
                                     editMode={true}
+                                    isDefaultImage={isDefaultImage}
                                 />
                             </Box>
                             <Grid container spacing={2}>

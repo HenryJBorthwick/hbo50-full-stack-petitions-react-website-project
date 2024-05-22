@@ -16,6 +16,8 @@ interface UserProfile {
 }
 
 const theme = createTheme();
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif'];
 
 const Profile: React.FC = () => {
     const { user } = useUserStore();
@@ -30,6 +32,8 @@ const Profile: React.FC = () => {
     const [newPassword, setNewPassword] = useState<string>('');
     const [profileImage, setProfileImage] = useState<File | null>(null);
     const [initialImage, setInitialImage] = useState<string>('');
+    const [imageRemoved, setImageRemoved] = useState<boolean>(false);
+    const [isDefaultImage, setIsDefaultImage] = useState<boolean>(true);
 
     const fetchProfile = async () => {
         if (!user) return;
@@ -43,6 +47,11 @@ const Profile: React.FC = () => {
             const imageResponse = await axios.get(`${API_HOST}/users/${user.id}/image`, { responseType: 'blob' });
             const imageURL = URL.createObjectURL(imageResponse.data);
             setInitialImage(imageURL);
+            // Check if the current image is the default generated image
+            const initial = response.data.firstName.charAt(0).toUpperCase();
+            const defaultCanvas = generateDefaultAvatar(initial);
+            const defaultBlob = await convertCanvasToBlob(defaultCanvas, 'image/png');
+            setIsDefaultImage(await blobsAreEqual(imageResponse.data, defaultBlob));
         } catch (err: any) {
             setError(err.response?.data?.message || 'Failed to fetch profile information');
         } finally {
@@ -50,15 +59,43 @@ const Profile: React.FC = () => {
         }
     };
 
+    const blobsAreEqual = async (blob1: Blob, blob2: Blob): Promise<boolean> => {
+        const arrayBuffer1 = await blob1.arrayBuffer();
+        const arrayBuffer2 = await blob2.arrayBuffer();
+        return arrayBuffer1.byteLength === arrayBuffer2.byteLength &&
+            new Uint8Array(arrayBuffer1).every((value, index) => value === new Uint8Array(arrayBuffer2)[index]);
+    };
+
     useEffect(() => {
         fetchProfile();
     }, [user]);
+
+    const validateFields = () => {
+        if (profileImage) {
+            if (profileImage.size > MAX_IMAGE_SIZE) {
+                return `Image size should not exceed ${MAX_IMAGE_SIZE / (1024 * 1024)} MB.`;
+            }
+
+            if (!ALLOWED_IMAGE_TYPES.includes(profileImage.type)) {
+                return `Invalid image type. Allowed types are: ${ALLOWED_IMAGE_TYPES.join(', ')}.`;
+            }
+        }
+
+        return null;
+    };
 
     const handleUpdateProfile = async () => {
         if (!user) return;
         setLoading(true);
         setError(null);
         setSuccess(null);
+
+        const validationError = validateFields();
+        if (validationError) {
+            setError(validationError);
+            setLoading(false);
+            return;
+        }
 
         try {
             const updateUser: UserProfile = {
@@ -76,26 +113,28 @@ const Profile: React.FC = () => {
                 headers: { 'X-Authorization': user.token }
             });
 
-            let imageData: ArrayBuffer;
-            let contentType: string;
+            if (profileImage || imageRemoved) {
+                let imageData: ArrayBuffer;
+                let contentType: string;
 
-            if (profileImage) {
-                imageData = await profileImage.arrayBuffer();
-                contentType = profileImage.type;
-            } else {
-                const initial = firstName.charAt(0).toUpperCase();
-                const canvas = generateDefaultAvatar(initial);
-                const blob = await convertCanvasToBlob(canvas, 'image/png');
-                imageData = await blob.arrayBuffer();
-                contentType = 'image/png';
-            }
-
-            await axios.put(`${API_HOST}/users/${user.id}/image`, imageData, {
-                headers: {
-                    'X-Authorization': user.token,
-                    'Content-Type': contentType
+                if (imageRemoved) {
+                    const initial = firstName.charAt(0).toUpperCase();
+                    const canvas = generateDefaultAvatar(initial);
+                    const blob = await convertCanvasToBlob(canvas, 'image/png');
+                    imageData = await blob.arrayBuffer();
+                    contentType = 'image/png';
+                } else {
+                    imageData = await profileImage!.arrayBuffer();
+                    contentType = profileImage!.type;
                 }
-            });
+
+                await axios.put(`${API_HOST}/users/${user.id}/image`, imageData, {
+                    headers: {
+                        'X-Authorization': user.token,
+                        'Content-Type': contentType
+                    }
+                });
+            }
 
             setSuccess('Profile updated successfully.');
             setEditMode(false);
@@ -127,6 +166,9 @@ const Profile: React.FC = () => {
                     case 403:
                         setError('Email already in use. Please use a different email.');
                         break;
+                    case 413:
+                        setError('The uploaded image is too large. Please upload an image smaller than 5MB.');
+                        break;
                     default:
                         setError('An unexpected error occurred. Please try again.');
                 }
@@ -136,6 +178,35 @@ const Profile: React.FC = () => {
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleImageChange = (file: File | null) => {
+        setProfileImage(file);
+        setImageRemoved(false);
+        if (file) {
+            setIsDefaultImage(false);
+        }
+    };
+
+    const handleImageRemove = async () => {
+        const initial = firstName.charAt(0).toUpperCase();
+        const canvas = generateDefaultAvatar(initial);
+        const blob = await convertCanvasToBlob(canvas, 'image/png');
+        setInitialImage(URL.createObjectURL(blob));
+        setProfileImage(null);
+        setImageRemoved(true);
+        setIsDefaultImage(true);
+    };
+
+    const handleEditMode = () => {
+        setEditMode(true);
+        setSuccess(null); // Reset the success message when entering edit mode
+    };
+
+    const handleCancelEdit = async () => {
+        setEditMode(false);
+        setSuccess(null);
+        await fetchProfile(); // Reset the profile changes when canceling
     };
 
     if (!user) {
@@ -162,9 +233,10 @@ const Profile: React.FC = () => {
                     <Box display="flex" flexDirection="column" alignItems="center">
                         <ImageUpload
                             initialImage={initialImage}
-                            onImageChange={setProfileImage}
-                            onImageRemove={() => setProfileImage(null)}
+                            onImageChange={handleImageChange}
+                            onImageRemove={handleImageRemove}
                             editMode={editMode}
+                            isDefaultImage={isDefaultImage}
                         />
                     </Box>
                     <Box component="form" noValidate autoComplete="off" mt={3}>
@@ -214,11 +286,11 @@ const Profile: React.FC = () => {
                             </>
                         )}
                         <Box mt={2}>
-                            <Button variant="contained" color="primary" onClick={editMode ? handleUpdateProfile : () => setEditMode(true)} fullWidth>
+                            <Button variant="contained" color="primary" onClick={editMode ? handleUpdateProfile : handleEditMode} fullWidth>
                                 {editMode ? 'Save Changes' : 'Edit Profile'}
                             </Button>
                             {editMode && (
-                                <Button variant="outlined" color="secondary" onClick={() => setEditMode(false)} fullWidth sx={{ mt: 1 }}>
+                                <Button variant="outlined" color="secondary" onClick={handleCancelEdit} fullWidth sx={{ mt: 1 }}>
                                     Cancel
                                 </Button>
                             )}
