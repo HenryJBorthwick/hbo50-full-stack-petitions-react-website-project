@@ -172,7 +172,6 @@ export default function Register() {
                 setError('Unable to connect to the server. Please try again later.');
             }
         }
-
     };
 
     return (

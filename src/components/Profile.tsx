@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Container, Box, CircularProgress, Alert, TextField, Button, Typography, Paper, CssBaseline, createTheme, ThemeProvider } from '@mui/material';
+import { Container, Box, CircularProgress, Alert, TextField, Button, Typography, Paper, IconButton, InputAdornment, CssBaseline, createTheme, ThemeProvider } from '@mui/material';
+import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { useUserStore } from '../store';
 import { API_HOST } from '../../config';
 import NavigationBar from './NavBar';
@@ -34,6 +35,8 @@ const Profile: React.FC = () => {
     const [initialImage, setInitialImage] = useState<string>('');
     const [imageRemoved, setImageRemoved] = useState<boolean>(false);
     const [isDefaultImage, setIsDefaultImage] = useState<boolean>(true);
+    const [showCurrentPassword, setShowCurrentPassword] = useState<boolean>(false);
+    const [showNewPassword, setShowNewPassword] = useState<boolean>(false);
 
     const fetchProfile = async () => {
         if (!user) return;
@@ -47,7 +50,6 @@ const Profile: React.FC = () => {
             const imageResponse = await axios.get(`${API_HOST}/users/${user.id}/image`, { responseType: 'blob' });
             const imageURL = URL.createObjectURL(imageResponse.data);
             setInitialImage(imageURL);
-            // Check if the current image is the default generated image
             const initial = response.data.firstName.charAt(0).toUpperCase();
             const defaultCanvas = generateDefaultAvatar(initial);
             const defaultBlob = await convertCanvasToBlob(defaultCanvas, 'image/png');
@@ -144,14 +146,20 @@ const Profile: React.FC = () => {
                 const statusText = error.response.statusText;
                 switch (error.response.status) {
                     case 400:
-                        if (statusText.includes("firstName")) {
+                        if (statusText.includes("data/firstName must NOT have fewer than 1 characters")) {
                             setError("First Name is required.");
-                        } else if (statusText.includes("lastName")) {
+                        } else if (statusText.includes("data/firstName must NOT have more than 64 characters")) {
+                            setError("First Name must not exceed 64 characters.");
+                        } else if (statusText.includes("data/lastName must NOT have more than 64 characters")) {
+                            setError("Last Name must not exceed 64 characters.");
+                        } else if (statusText.includes("data/lastName must NOT have fewer than 1 characters")) {
                             setError("Last Name is required.");
-                        } else if (statusText.includes("must match format \"email\"")) {
+                        } else if (statusText.includes("data/email must NOT have more than 256 characters")) {
+                            setError("Email must not exceed 256 characters.");
+                        } else if (statusText.includes("email")) {
                             setError("Invalid email format. Please enter a valid email address that contains an '@' and a top-level domain.");
-                        } else if (statusText.includes("must NOT have fewer than 1 characters")) {
-                            setError("Email is required.");
+                        } else if (statusText.includes("data/password must NOT have more than 64 characters")) {
+                            setError("Password must not exceed 64 characters.");
                         } else if (statusText.includes("password")) {
                             setError("Password must be at least 6 characters.");
                         } else {
@@ -271,17 +279,41 @@ const Profile: React.FC = () => {
                                     fullWidth
                                     margin="normal"
                                     label="Current Password"
-                                    type="password"
+                                    type={showCurrentPassword ? 'text' : 'password'}
                                     value={currentPassword}
                                     onChange={(e) => setCurrentPassword(e.target.value)}
+                                    InputProps={{
+                                        endAdornment: (
+                                            <InputAdornment position="end">
+                                                <IconButton
+                                                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                                                    onMouseDown={(e) => e.preventDefault()}
+                                                >
+                                                    {showCurrentPassword ? <Visibility /> : <VisibilityOff />}
+                                                </IconButton>
+                                            </InputAdornment>
+                                        )
+                                    }}
                                 />
                                 <TextField
                                     fullWidth
                                     margin="normal"
                                     label="New Password"
-                                    type="password"
+                                    type={showNewPassword ? 'text' : 'password'}
                                     value={newPassword}
                                     onChange={(e) => setNewPassword(e.target.value)}
+                                    InputProps={{
+                                        endAdornment: (
+                                            <InputAdornment position="end">
+                                                <IconButton
+                                                    onClick={() => setShowNewPassword(!showNewPassword)}
+                                                    onMouseDown={(e) => e.preventDefault()}
+                                                >
+                                                    {showNewPassword ? <Visibility /> : <VisibilityOff />}
+                                                </IconButton>
+                                            </InputAdornment>
+                                        )
+                                    }}
                                 />
                             </>
                         )}
