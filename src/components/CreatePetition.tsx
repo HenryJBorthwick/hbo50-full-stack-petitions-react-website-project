@@ -14,6 +14,7 @@ interface Category {
 const theme = createTheme();
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif'];
+const MAX_COST = 9999999; // Maximum allowable cost for support tiers
 
 const CreatePetition: React.FC = () => {
     const [title, setTitle] = useState('');
@@ -109,6 +110,10 @@ const CreatePetition: React.FC = () => {
             return "Support tier titles must be unique.";
         }
 
+        if (supportTiers.some(tier => tier.cost > MAX_COST)) {
+            return `Support tier cost cannot exceed ${MAX_COST}.`;
+        }
+
         if (!image) {
             return "Please upload an image.";
         }
@@ -183,8 +188,16 @@ const CreatePetition: React.FC = () => {
                     case 400:
                         if (statusText.includes("data/title must NOT have fewer than 1 characters")) {
                             setError("Petition title cannot be empty.");
+                        } else if (statusText.includes("data/title must NOT have more than 128 characters")) {
+                            setError("Petition title cannot exceed 128 characters.");
+                        } else if (/data\/supportTiers\/\d+\/title must NOT have more than 128 characters/.test(statusText)) {
+                            setError("Support tier title cannot exceed 128 characters.");
                         } else if (statusText.includes("data/description must NOT have fewer than 1 characters")) {
                             setError("Petition description cannot be empty.");
+                        } else if (statusText.includes("data/description must NOT have more than 1024 characters")) {
+                            setError("Petition description cannot exceed 1024 characters.");
+                        } else if (/data\/supportTiers\/\d+\/description must NOT have more than 1024 characters/.test(statusText)) {
+                            setError("Support tier description cannot exceed 1024 characters.");
                         } else if (statusText.includes("photo must be image/jpeg, image/png, image/gif type")) {
                             setError("Invalid image type. Allowed types are: image/jpeg, image/png, image/gif.");
                         } else {
@@ -195,7 +208,10 @@ const CreatePetition: React.FC = () => {
                         setError('You are not authorized to create this petition.');
                         break;
                     case 413:
-                        setError('The uploaded image is too large. Please upload an image smaller than 5MB.');
+                        setError('Field or File size exceeds the allowable limit.');
+                        break;
+                    case 500:
+                        setError('Internal server error. Please try again.');
                         break;
                     default:
                         setError('An unexpected error occurred. Please try again.');
@@ -285,7 +301,7 @@ const CreatePetition: React.FC = () => {
                                         InputLabelProps={{ shrink: true }}
                                         InputProps={{
                                             onKeyDown: handleCostKeyDown(index),
-                                            inputProps: { min: 0 }
+                                            inputProps: { min: 0, max: MAX_COST }
                                         }}
                                     />
                                     <Button

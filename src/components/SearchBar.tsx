@@ -16,6 +16,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ searchQuery, setSearchQuery }) =>
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Enter keywords"
+                inputProps={{ maxLength: 64 }}
             />
         </Box>
     );

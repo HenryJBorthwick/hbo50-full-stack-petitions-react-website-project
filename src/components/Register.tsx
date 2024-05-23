@@ -55,9 +55,16 @@ export default function Register() {
     const [snackbarOpen, setSnackbarOpen] = useState(false);
     const [attemptedPath, setAttemptedPath] = useState<string | null>(null);
 
+    const user = useUserStore((state) => state.user);
     const setUser = useUserStore((state) => state.setUser);
     const navigate = useNavigate();
     const location = useLocation();
+
+    useEffect(() => {
+        if (user) {
+            navigate('/petitions');
+        }
+    }, [user, navigate]);
 
     useEffect(() => {
         if (location.state?.fromProtectedRoute) {
