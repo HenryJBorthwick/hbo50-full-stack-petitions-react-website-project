@@ -200,6 +200,29 @@ const EditPetition: React.FC = () => {
         setSupportTiers(updatedTiers);
     };
 
+    const handleCostKeyDown = (index: number) => (event: React.KeyboardEvent<HTMLInputElement>) => {
+        const key = event.key;
+        const currentCost = supportTiers[index].cost.toString();
+
+        if (!/^[0-9]$/.test(key) && key !== 'Backspace') {
+            event.preventDefault();
+        }
+
+        if (key === 'Backspace' && currentCost.length === 1) {
+            setSupportTiers(supportTiers.map((tier, idx) =>
+                idx === index ? { ...tier, cost: 0 } : tier
+            ));
+            event.preventDefault();
+        }
+
+        if (supportTiers[index].cost === 0 && /^[0-9]$/.test(key)) {
+            setSupportTiers(supportTiers.map((tier, idx) =>
+                idx === index ? { ...tier, cost: parseInt(key, 10) } : tier
+            ));
+            event.preventDefault();
+        }
+    };
+
     const handleAddTier = () => {
         if (supportTiers.length < 3) {
             setSupportTiers([...supportTiers, { title: '', description: '', cost: 0 }]);
@@ -264,8 +287,12 @@ const EditPetition: React.FC = () => {
                                         type="number"
                                         fullWidth
                                         value={tier.cost}
-                                        onChange={(e) => handleTierChange(index, 'cost', Number(e.target.value))}
+                                        onChange={(e) => handleTierChange(index, 'cost', e.target.value === '' ? 0 : parseFloat(e.target.value))}
                                         sx={{ mb: 1 }}
+                                        InputProps={{
+                                            onKeyDown: handleCostKeyDown(index),
+                                            inputProps: { min: 0 }
+                                        }}
                                         disabled={!!supporters[tier.supportTierId]}
                                     />
                                     <Button

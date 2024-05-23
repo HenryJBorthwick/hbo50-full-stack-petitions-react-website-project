@@ -18,7 +18,26 @@ const FilterBar: React.FC<FilterBarProps> = ({ categories, selectedCategories, s
     };
 
     const handleCostChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        setMaxCost(Number(event.target.value));
+        setMaxCost(event.target.value === '' ? 0 : Number(event.target.value));
+    };
+
+    const handleCostKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+        const key = event.key;
+        const currentCost = maxCost.toString();
+
+        if (!/^[0-9]$/.test(key) && key !== 'Backspace') {
+            event.preventDefault();
+        }
+
+        if (key === 'Backspace' && currentCost.length === 1) {
+            setMaxCost(0);
+            event.preventDefault();
+        }
+
+        if (maxCost === 0 && /^[0-9]$/.test(key)) {
+            setMaxCost(parseInt(key, 10));
+            event.preventDefault();
+        }
     };
 
     const handleSortChange = (event: SelectChangeEvent<string>) => {
@@ -50,7 +69,11 @@ const FilterBar: React.FC<FilterBarProps> = ({ categories, selectedCategories, s
                 type="number"
                 value={maxCost}
                 onChange={handleCostChange}
+                onKeyDown={handleCostKeyDown}
                 sx={{ width: 200 }}
+                InputProps={{
+                    inputProps: { min: 0 }
+                }}
             />
             <FormControl variant="outlined" sx={{ minWidth: 200 }}>
                 <InputLabel>Sort By</InputLabel>

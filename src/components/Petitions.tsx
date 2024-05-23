@@ -285,7 +285,7 @@ const Petitions: React.FC = () => {
                                     onChange={handlePageSizeChange}
                                     label="Page Size"
                                 >
-                                    {[5, 9].map(size => (
+                                    {[6, 9].map(size => (
                                         <MenuItem key={size} value={size}>{size}</MenuItem>
                                     ))}
                                 </Select>
