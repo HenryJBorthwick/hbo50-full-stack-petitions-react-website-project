@@ -180,8 +180,6 @@ const Petitions: React.FC = () => {
         setCurrentPage(1); // Reset to the first page whenever page size changes
     };
 
-    if (!user) return null;
-
     return (
         <ThemeProvider theme={theme}>
             <NavBar />

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Avatar,
     Button,
@@ -15,24 +15,33 @@ import {
     InputAdornment,
     IconButton,
     Tooltip,
-    Paper
+    Paper,
+    Snackbar
 } from '@mui/material';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useUserStore } from '../store';
 import NavBar from './NavBar';
 import { API_HOST } from '../../config';
 import ImageUpload from './ImageUpload';
 import { generateDefaultAvatar, convertCanvasToBlob } from '../utils/avatarUtils';
+import MuiAlert, { AlertProps } from '@mui/material/Alert';
 
 const theme = createTheme();
 
 // Generate the default avatar image as a base64 string
 const defaultAvatarCanvas = generateDefaultAvatar('P');
 const defaultAvatarImage = defaultAvatarCanvas.toDataURL();
+
+const AlertSnackbar = React.forwardRef<HTMLDivElement, AlertProps>(function Alert(
+    props,
+    ref,
+) {
+    return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
+});
 
 export default function Register() {
     const [firstName, setFirstName] = useState('');
@@ -43,8 +52,25 @@ export default function Register() {
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isDefaultImage, setIsDefaultImage] = useState<boolean>(true);
+    const [snackbarOpen, setSnackbarOpen] = useState(false);
+    const [attemptedPath, setAttemptedPath] = useState<string | null>(null);
+
     const setUser = useUserStore((state) => state.setUser);
     const navigate = useNavigate();
+    const location = useLocation();
+
+    useEffect(() => {
+        if (location.state?.fromProtectedRoute) {
+            setSnackbarOpen(true);
+            setAttemptedPath(location.state.attemptedPath);
+            // Clear the state after showing the snackbar
+            navigate(location.pathname, { replace: true, state: {} });
+        }
+    }, [location.state, navigate]);
+
+    const handleCloseSnackbar = () => {
+        setSnackbarOpen(false);
+    };
 
     const handleClickShowPassword = () => {
         setShowPassword(!showPassword);
@@ -237,6 +263,16 @@ export default function Register() {
                     </Box>
                 </Paper>
             </Container>
+            <Snackbar
+                open={snackbarOpen}
+                autoHideDuration={6000}
+                onClose={handleCloseSnackbar}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+            >
+                <AlertSnackbar onClose={handleCloseSnackbar} severity="error">
+                    Please register to access {attemptedPath}.
+                </AlertSnackbar>
+            </Snackbar>
         </ThemeProvider>
     );
 }
