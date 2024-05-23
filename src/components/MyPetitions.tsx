@@ -21,6 +21,7 @@ import { API_HOST } from '../../config';
 import NavBar from './NavBar';
 import { useUserStore } from '../store';
 import dayjs from 'dayjs';
+import { generateDefaultAvatar, convertCanvasToBlob } from '../utils/avatarUtils';
 
 interface Petition {
     petitionId: number;
@@ -48,6 +49,19 @@ const MyPetitions: React.FC = () => {
     const { user } = useUserStore();
     const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
+    const fetchOwnerProfileImage = async (petition: Petition) => {
+        try {
+            const imageResponse = await axios.get(`${API_HOST}/users/${petition.ownerId}/image`, { responseType: 'blob' });
+            petition.ownerProfileImage = URL.createObjectURL(imageResponse.data);
+        } catch (error) {
+            const initial = petition.ownerFirstName.charAt(0).toUpperCase();
+            const canvas = generateDefaultAvatar(initial);
+            const blob = await convertCanvasToBlob(canvas, 'image/png');
+            petition.ownerProfileImage = URL.createObjectURL(blob);
+        }
+        return petition;
+    };
+
     const fetchPetitions = async () => {
         if (!user) return;
 
@@ -66,7 +80,9 @@ const MyPetitions: React.FC = () => {
 
             const combinedPetitions = [...ownedPetitions, ...supportedPetitions];
 
-            setPetitions(combinedPetitions);
+            const petitionsWithProfileImages = await Promise.all(combinedPetitions.map(fetchOwnerProfileImage));
+
+            setPetitions(petitionsWithProfileImages);
         } catch (error) {
             console.error('Failed to fetch petitions:', error);
         } finally {
