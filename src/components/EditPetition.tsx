@@ -310,6 +310,11 @@ const EditPetition: React.FC = () => {
                                     >
                                         Remove Tier
                                     </Button>
+                                    {supporters[tier.supportTierId] > 0 && (
+                                        <Alert severity="info" sx={{ mb: 1 }}>
+                                            This tier has been supported and cannot be edited.
+                                        </Alert>
+                                    )}
                                 </Paper>
                             </Grid>
                         ))}
