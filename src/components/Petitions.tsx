@@ -20,7 +20,9 @@ import {
     Paper,
     CssBaseline,
     createTheme,
-    ThemeProvider
+    ThemeProvider,
+    Snackbar,
+    Alert
 } from '@mui/material';
 import dayjs from 'dayjs';
 import { API_HOST } from '../../config';
@@ -63,6 +65,7 @@ const Petitions: React.FC = () => {
     const [pageSize, setPageSize] = useState(9);
     const { user } = useUserStore();
     const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+    const [errorSnackbarOpen, setErrorSnackbarOpen] = useState(false);
 
     useEffect(() => {
         const fetchCategories = async () => {
@@ -166,8 +169,17 @@ const Petitions: React.FC = () => {
             });
             setConfirmDeleteId(null);
             fetchPetitions();
-        } catch (error) {
-            console.error('Failed to delete petition:', error);
+        } catch (error: any) {
+            if (
+                axios.isAxiosError(error) &&
+                error.response &&
+                error.response.status === 403 &&
+                error.response.statusText === 'Can not delete a petition if one or more users have supported it'
+            ) {
+                setErrorSnackbarOpen(true);
+            } else {
+                console.error('Failed to delete petition:', error);
+            }
         }
     };
 
@@ -302,6 +314,16 @@ const Petitions: React.FC = () => {
                     </Stack>
                 </Paper>
             </Container>
+            <Snackbar
+                open={errorSnackbarOpen}
+                autoHideDuration={6000}
+                onClose={() => setErrorSnackbarOpen(false)}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+            >
+                <Alert onClose={() => setErrorSnackbarOpen(false)} severity="error" sx={{ width: '100%' }}>
+                    Cannot delete a petition that has supporters.
+                </Alert>
+            </Snackbar>
         </ThemeProvider>
     );
 };
