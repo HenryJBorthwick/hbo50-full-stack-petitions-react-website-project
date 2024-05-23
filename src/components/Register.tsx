@@ -142,12 +142,20 @@ export default function Register() {
                 const statusText = error.response.statusText;
                 switch (error.response.status) {
                     case 400:
-                        if (statusText.includes("firstName")) {
+                        if (statusText.includes("data/firstName must NOT have fewer than 1 characters")) {
                             setError("First Name is required.");
-                        } else if (statusText.includes("lastName")) {
+                        } else if (statusText.includes("data/firstName must NOT have more than 64 characters")) {
+                            setError("First Name must not exceed 64 characters.");
+                        } else if (statusText.includes("data/lastName must NOT have more than 64 characters")) {
+                            setError("Last Name must not exceed 64 characters.");
+                        } else if (statusText.includes("data/lastName must NOT have fewer than 1 characters")) {
                             setError("Last Name is required.");
+                        } else if (statusText.includes("data/email must NOT have more than 256 characters")) {
+                            setError("Email must not exceed 256 characters.");
                         } else if (statusText.includes("email")) {
                             setError("Invalid email format. Please enter a valid email address that contains an '@' and a top-level domain.");
+                        } else if (statusText.includes("data/password must NOT have more than 64 characters")) {
+                            setError("Password must not exceed 64 characters.");
                         } else if (statusText.includes("password")) {
                             setError("Password must be at least 6 characters.");
                         } else {
@@ -164,6 +172,7 @@ export default function Register() {
                 setError('Unable to connect to the server. Please try again later.');
             }
         }
+
     };
 
     return (
