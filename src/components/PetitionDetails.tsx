@@ -32,6 +32,7 @@ import {
 import { API_HOST } from '../../config';
 import NavBar from './NavBar';
 import { useUserStore } from '../store';
+import { generateDefaultAvatar, convertCanvasToBlob } from '../utils/avatarUtils';
 
 interface SupportTier {
     supportTierId: number;
@@ -101,7 +102,10 @@ const PetitionDetails: React.FC = () => {
                 const ownerImageResponse = await axios.get(`${API_HOST}/users/${petitionData.ownerId}/image`, { responseType: 'blob' });
                 petitionData.ownerProfileImage = URL.createObjectURL(ownerImageResponse.data);
             } catch (error) {
-                petitionData.ownerProfileImage = '/images/default-avatar.png';
+                const initial = petitionData.ownerFirstName.charAt(0).toUpperCase();
+                const canvas = generateDefaultAvatar(initial);
+                const blob = await convertCanvasToBlob(canvas, 'image/png');
+                petitionData.ownerProfileImage = URL.createObjectURL(blob);
             }
 
             setPetition(petitionData);
@@ -122,7 +126,10 @@ const PetitionDetails: React.FC = () => {
                         const supporterImageResponse = await axios.get(`${API_HOST}/users/${supporter.supporterId}/image`, { responseType: 'blob' });
                         supporter.supporterProfileImage = URL.createObjectURL(supporterImageResponse.data);
                     } catch (error) {
-                        supporter.supporterProfileImage = '/images/default-avatar.png';
+                        const initial = supporter.supporterFirstName.charAt(0).toUpperCase();
+                        const canvas = generateDefaultAvatar(initial);
+                        const blob = await convertCanvasToBlob(canvas, 'image/png');
+                        supporter.supporterProfileImage = URL.createObjectURL(blob);
                     }
 
                     const tier = petitionData.supportTiers.find(tier => tier.supportTierId === supporter.supportTierId);
@@ -238,7 +245,7 @@ const PetitionDetails: React.FC = () => {
                         />
                         <Box display="flex" justifyContent="center" alignItems="center" my={2}>
                             <Avatar
-                                src={petition.ownerProfileImage || '/images/default-avatar.png'}
+                                src={petition.ownerProfileImage}
                                 alt={`${petition.ownerFirstName} ${petition.ownerLastName}`}
                                 sx={{ mr: 2 }}
                             />
@@ -321,7 +328,7 @@ const PetitionDetails: React.FC = () => {
                                     <ListItem alignItems="flex-start">
                                         <ListItemAvatar>
                                             <Avatar
-                                                src={supporter.supporterProfileImage || '/images/default-avatar.png'}
+                                                src={supporter.supporterProfileImage}
                                                 alt={`${supporter.supporterFirstName} ${supporter.supporterLastName}`}
                                             />
                                         </ListItemAvatar>
