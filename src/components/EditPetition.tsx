@@ -8,6 +8,10 @@ import NavBar from './NavBar';
 
 const theme = createTheme();
 
+interface Supporter {
+    supportTierId: number;
+}
+
 const EditPetition: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
@@ -54,20 +58,23 @@ const EditPetition: React.FC = () => {
 
     const fetchSupporters = (tiers: any[]) => {
         if (id) {
-            const tierSupportersPromises = tiers.map(tier =>
-                axios.get(`${API_HOST}/petitions/${id}/supporters`, { params: { supportTierId: tier.supportTierId } })
-                    .then(response => ({
-                        supportTierId: tier.supportTierId,
-                        count: response.data.length
-                    }))
-            );
-
-            Promise.all(tierSupportersPromises)
-                .then(results => {
+            axios.get(`${API_HOST}/petitions/${id}/supporters`)
+                .then(response => {
+                    const allSupporters: Supporter[] = response.data;
                     const supportersData: { [key: number]: number } = {};
-                    results.forEach(result => {
-                        supportersData[result.supportTierId] = result.count;
+
+                    // Initialize count for each tier to 0
+                    tiers.forEach(tier => {
+                        supportersData[tier.supportTierId] = 0;
                     });
+
+                    // Count supporters for each tier
+                    allSupporters.forEach((supporter: Supporter) => {
+                        if (Object.prototype.hasOwnProperty.call(supportersData, supporter.supportTierId)) {
+                            supportersData[supporter.supportTierId] += 1;
+                        }
+                    });
+
                     setSupporters(supportersData);
                 })
                 .catch(err => {
