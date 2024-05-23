@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import {
     Container,
     Box,
@@ -17,11 +17,6 @@ import {
     Button,
     Grid,
     TextField,
-    Dialog,
-    DialogActions,
-    DialogContent,
-    DialogContentText,
-    DialogTitle,
     Snackbar,
     Alert,
     CssBaseline,
@@ -79,12 +74,12 @@ const theme = createTheme();
 
 const PetitionDetails: React.FC = () => {
     const { id } = useParams<{ id: string }>();
+    const navigate = useNavigate();
     const [petition, setPetition] = useState<Petition | null>(null);
     const [supporters, setSupporters] = useState<Supporter[]>([]);
     const [similarPetitions, setSimilarPetitions] = useState<Petition[]>([]);
-    const [openSupportDialog, setOpenSupportDialog] = useState(false);
-    const [selectedTier, setSelectedTier] = useState<SupportTier | null>(null);
     const [supportMessage, setSupportMessage] = useState('');
+    const [selectedTier, setSelectedTier] = useState<SupportTier | null>(null);
     const [snackbarMessage, setSnackbarMessage] = useState('');
     const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
     const { user } = useUserStore();
@@ -177,19 +172,15 @@ const PetitionDetails: React.FC = () => {
 
     const handleSupportClick = (tier: SupportTier) => {
         if (!user) {
-            setSnackbarMessage('You need to log in to support a petition.');
-            setSnackbarSeverity('error');
-            setOpenSupportDialog(false);
+            navigate('/register', { state: { fromProtectedRoute: true, attemptedPath: window.location.pathname } });
             return;
         }
         if (user.id === petition?.ownerId) {
             setSnackbarMessage('You cannot support your own petition.');
             setSnackbarSeverity('error');
-            setOpenSupportDialog(false);
             return;
         }
         setSelectedTier(tier);
-        setOpenSupportDialog(true);
     };
 
     const handleSupportSubmit = async () => {
@@ -209,7 +200,7 @@ const PetitionDetails: React.FC = () => {
             setSnackbarMessage('Successfully supported the petition.');
             setSnackbarSeverity('success');
             setSupportMessage('');
-            setOpenSupportDialog(false);
+            setSelectedTier(null);
 
             fetchSupporters(petition!); // Re-fetch supporters
         } catch (error) {
@@ -304,15 +295,36 @@ const PetitionDetails: React.FC = () => {
                                             <Typography variant="body2" color="textSecondary">
                                                 {tier.description} - ${tier.cost}
                                             </Typography>
-                                            <Button
-                                                variant="outlined"
-                                                color="primary"
-                                                onClick={() => handleSupportClick(tier)}
-                                                disabled={!user || user.id === petition.ownerId || hasUserSupportedTier(tier.supportTierId)}
-                                                sx={{ mt: 1 }}
-                                            >
-                                                Support
-                                            </Button>
+                                            {selectedTier && selectedTier.supportTierId === tier.supportTierId ? (
+                                                <Box>
+                                                    <TextField
+                                                        fullWidth
+                                                        variant="outlined"
+                                                        placeholder="Enter your support message"
+                                                        value={supportMessage}
+                                                        onChange={(e) => setSupportMessage(e.target.value)}
+                                                        sx={{ mt: 1 }}
+                                                    />
+                                                    <Button
+                                                        variant="contained"
+                                                        color="primary"
+                                                        onClick={handleSupportSubmit}
+                                                        sx={{ mt: 1 }}
+                                                    >
+                                                        Confirm Support
+                                                    </Button>
+                                                </Box>
+                                            ) : (
+                                                <Button
+                                                    variant="outlined"
+                                                    color="primary"
+                                                    onClick={() => handleSupportClick(tier)}
+                                                    disabled={user?.id === petition.ownerId || hasUserSupportedTier(tier.supportTierId)}
+                                                    sx={{ mt: 1 }}
+                                                >
+                                                    {hasUserSupportedTier(tier.supportTierId) ? 'Supported' : 'Support'}
+                                                </Button>
+                                            )}
                                         </CardContent>
                                     </Card>
                                 </Grid>
@@ -410,32 +422,6 @@ const PetitionDetails: React.FC = () => {
                     </Box>
                 </Paper>
             </Container>
-
-            <Dialog open={openSupportDialog} onClose={() => setOpenSupportDialog(false)}>
-                <DialogTitle>Support {selectedTier?.title}</DialogTitle>
-                <DialogContent>
-                    <DialogContentText>
-                        You can optionally leave a message with your support.
-                    </DialogContentText>
-                    <TextField
-                        autoFocus
-                        margin="dense"
-                        label="Support Message"
-                        type="text"
-                        fullWidth
-                        value={supportMessage}
-                        onChange={(e) => setSupportMessage(e.target.value)}
-                    />
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={() => setOpenSupportDialog(false)} color="primary">
-                        Cancel
-                    </Button>
-                    <Button onClick={handleSupportSubmit} color="primary">
-                        Support
-                    </Button>
-                </DialogActions>
-            </Dialog>
 
             <Snackbar
                 open={!!snackbarMessage}
