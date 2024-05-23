@@ -7,6 +7,7 @@ import { useUserStore } from '../store';
 import NavBar from './NavBar';
 
 const theme = createTheme();
+const MAX_COST = 9999999; // Maximum allowable cost for support tiers
 
 interface Supporter {
     supportTierId: number;
@@ -27,10 +28,14 @@ const EditPetition: React.FC = () => {
     const [error, setError] = useState<string>('');
 
     useEffect(() => {
-        if (id) {
+        if (id && user) {
             axios.get(`${API_HOST}/petitions/${id}`)
                 .then(response => {
                     const data = response.data;
+                    if (user.id !== data.ownerId) {
+                        navigate(`/petitions`);
+                        return;
+                    }
                     setPetition(data);
                     setTitle(data.title);
                     setDescription(data.description);
@@ -54,7 +59,7 @@ const EditPetition: React.FC = () => {
         } else {
             setError('Petition ID is not specified in the URL');
         }
-    }, [id]);
+    }, [id, user, navigate]);
 
     const fetchSupporters = (tiers: any[]) => {
         if (id) {
@@ -98,6 +103,10 @@ const EditPetition: React.FC = () => {
 
         if (titles.length !== uniqueTitles.size) {
             return "Support tier titles must be unique.";
+        }
+
+        if (supportTiers.some(tier => tier.cost > MAX_COST)) {
+            return `Support tier cost cannot exceed ${MAX_COST}.`;
         }
 
         return null;
@@ -184,14 +193,34 @@ const EditPetition: React.FC = () => {
                     case 400:
                         if (statusText.includes("data/title must NOT have fewer than 1 characters")) {
                             setError("Petition title cannot be empty.");
+                        } else if (statusText.includes("data/title must NOT have more than 128 characters")) {
+                            setError("Petition title cannot exceed 128 characters.");
+                        } else if (/data\/supportTiers\/\d+\/title must NOT have more than 128 characters/.test(statusText)) {
+                            setError("Support tier title cannot exceed 128 characters.");
                         } else if (statusText.includes("data/description must NOT have fewer than 1 characters")) {
                             setError("Petition description cannot be empty.");
+                        } else if (statusText.includes("data/description must NOT have more than 1024 characters")) {
+                            setError("Petition description cannot exceed 1024 characters.");
+                        } else if (/data\/supportTiers\/\d+\/description must NOT have more than 1024 characters/.test(statusText)) {
+                            setError("Support tier description cannot exceed 1024 characters.");
+                        } else if (statusText.includes("photo must be image/jpeg, image/png, image/gif type")) {
+                            setError("Invalid image type. Allowed types are: image/jpeg, image/png, image/gif.");
                         } else {
                             setError('Invalid information. Please check your input.');
                         }
                         break;
                     case 403:
-                        setError('You are not authorized to edit this petition.');
+                        if (statusText.includes("Duplicate support tier")) {
+                            setError('Duplicate support tier. Please provide a unique support tier.');
+                        } else {
+                            setError('You are not authorized to edit this petition.');
+                        }
+                        break;
+                    case 413:
+                        setError('Field or File size exceeds the allowable limit.');
+                        break;
+                    case 500:
+                        setError('Internal server error. Please try again.');
                         break;
                     default:
                         setError('An unexpected error occurred. Please try again.');
@@ -298,7 +327,7 @@ const EditPetition: React.FC = () => {
                                         sx={{ mb: 1 }}
                                         InputProps={{
                                             onKeyDown: handleCostKeyDown(index),
-                                            inputProps: { min: 0 }
+                                            inputProps: { min: 0, max: MAX_COST }
                                         }}
                                         disabled={!!supporters[tier.supportTierId]}
                                     />

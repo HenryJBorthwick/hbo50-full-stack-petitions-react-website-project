@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -83,9 +83,21 @@ const PetitionDetails: React.FC = () => {
     const [snackbarMessage, setSnackbarMessage] = useState('');
     const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
     const { user } = useUserStore();
+    const supportBoxRef = useRef<HTMLDivElement | null>(null);
 
     useEffect(() => {
         fetchPetitionDetails();
+
+        const handleClickOutside = (event: MouseEvent) => {
+            if (supportBoxRef.current && !supportBoxRef.current.contains(event.target as Node)) {
+                setSelectedTier(null);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
     }, [id]);
 
     const fetchPetitionDetails = async () => {
@@ -289,7 +301,7 @@ const PetitionDetails: React.FC = () => {
                         <Grid container spacing={2} direction="column" alignItems="center">
                             {petition.supportTiers.map(tier => (
                                 <Grid item xs={12} key={tier.supportTierId} sx={{ width: '100%' }}>
-                                    <Card sx={{ height: '100%' }}>
+                                    <Card sx={{ height: '100%' }} ref={supportBoxRef}>
                                         <CardContent>
                                             <Typography variant="body1">{tier.title}</Typography>
                                             <Typography variant="body2" color="textSecondary">
@@ -300,7 +312,7 @@ const PetitionDetails: React.FC = () => {
                                                     <TextField
                                                         fullWidth
                                                         variant="outlined"
-                                                        placeholder="Enter your support message"
+                                                        placeholder="Enter your support message (optional)"
                                                         value={supportMessage}
                                                         onChange={(e) => setSupportMessage(e.target.value)}
                                                         sx={{ mt: 1 }}
