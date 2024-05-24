@@ -335,7 +335,7 @@ const CreatePetition: React.FC = () => {
                                 Add Support Tier
                             </Button>
                         </Grid>
-                        <Grid item xs={12} container justifyContent="center">
+                        <Grid item xs={12} container direction="column" alignItems="center">
                             <Button
                                 variant="contained"
                                 component="label"
@@ -348,9 +348,7 @@ const CreatePetition: React.FC = () => {
                                     onChange={handleImageChange}
                                 />
                             </Button>
-                        </Grid>
-                        <Grid xs={12} container justifyContent="center">
-                        {image && <Typography>{image.name}</Typography>}
+                            {image && <Typography sx={{ mt: 1 }}>{image.name}</Typography>}
                         </Grid>
                         <Grid item xs={12} container justifyContent="center">
                             <Button onClick={handleSubmit} variant="contained" color="primary">
