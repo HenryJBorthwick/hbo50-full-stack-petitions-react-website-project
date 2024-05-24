@@ -236,7 +236,7 @@ const Petitions: React.FC = () => {
                                                 <Typography gutterBottom variant="h6" component="div" noWrap>
                                                     {petition.title}
                                                 </Typography>
-                                                <Box sx={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                <Box sx={{ overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                                                     <Typography variant="body2" color="text.secondary">
                                                         Category: {categories[petition.categoryId] || 'Loading...'}
                                                     </Typography>

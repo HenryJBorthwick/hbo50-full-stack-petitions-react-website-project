@@ -348,7 +348,9 @@ const CreatePetition: React.FC = () => {
                                     onChange={handleImageChange}
                                 />
                             </Button>
-                            {image && <Typography>{image.name}</Typography>}
+                        </Grid>
+                        <Grid xs={12} container justifyContent="center">
+                        {image && <Typography>{image.name}</Typography>}
                         </Grid>
                         <Grid item xs={12} container justifyContent="center">
                             <Button onClick={handleSubmit} variant="contained" color="primary">

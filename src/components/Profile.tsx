@@ -37,6 +37,7 @@ const Profile: React.FC = () => {
     const [isDefaultImage, setIsDefaultImage] = useState<boolean>(true);
     const [showCurrentPassword, setShowCurrentPassword] = useState<boolean>(false);
     const [showNewPassword, setShowNewPassword] = useState<boolean>(false);
+    const [uploadedImagePreview, setUploadedImagePreview] = useState<string | null>(null); // State to store the uploaded image preview
 
     const fetchProfile = async () => {
         if (!user) return;
@@ -140,6 +141,7 @@ const Profile: React.FC = () => {
 
             setSuccess('Profile updated successfully.');
             setEditMode(false);
+            setUploadedImagePreview(null); // Reset the uploaded image preview after successful save
             fetchProfile(); // Refetch the profile after a successful update
         } catch (error: unknown) {
             if (axios.isAxiosError(error) && error.response) {
@@ -193,6 +195,7 @@ const Profile: React.FC = () => {
         setImageRemoved(false);
         if (file) {
             setIsDefaultImage(false);
+            setUploadedImagePreview(URL.createObjectURL(file)); // Set the uploaded image preview
         }
     };
 
@@ -204,6 +207,7 @@ const Profile: React.FC = () => {
         setProfileImage(null);
         setImageRemoved(true);
         setIsDefaultImage(true);
+        setUploadedImagePreview(null); // Clear the uploaded image preview when image is removed
     };
 
     const handleEditMode = () => {
@@ -214,6 +218,7 @@ const Profile: React.FC = () => {
     const handleCancelEdit = async () => {
         setEditMode(false);
         setSuccess(null);
+        setUploadedImagePreview(null); // Clear the uploaded image preview when cancelling edit
         await fetchProfile(); // Reset the profile changes when canceling
     };
 
@@ -240,7 +245,7 @@ const Profile: React.FC = () => {
                     </Typography>
                     <Box display="flex" flexDirection="column" alignItems="center">
                         <ImageUpload
-                            initialImage={initialImage}
+                            initialImage={uploadedImagePreview || initialImage}
                             onImageChange={handleImageChange}
                             onImageRemove={handleImageRemove}
                             editMode={editMode}

@@ -103,6 +103,11 @@ const PetitionDetails: React.FC = () => {
             const response = await axios.get(`${API_HOST}/petitions/${id}`);
             const petitionData: Petition = response.data;
 
+            // Case where there is no supporters
+            if (petitionData.moneyRaised === null || petitionData.moneyRaised === undefined) {
+                petitionData.moneyRaised = 0;
+            }
+
             try {
                 const ownerImageResponse = await axios.get(`${API_HOST}/users/${petitionData.ownerId}/image`, { responseType: 'blob' });
                 petitionData.ownerProfileImage = URL.createObjectURL(ownerImageResponse.data);
@@ -198,7 +203,7 @@ const PetitionDetails: React.FC = () => {
         }
         timeoutRef.current = setTimeout(() => {
             setSelectedTier(null);
-        }, 3000); // 3 seconds timeout
+        }, 15000); //  seconds timeout
     };
 
     const handleSupportSubmit = async () => {
