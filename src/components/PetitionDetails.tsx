@@ -203,11 +203,17 @@ const PetitionDetails: React.FC = () => {
         }
         timeoutRef.current = setTimeout(() => {
             setSelectedTier(null);
-        }, 15000); //  seconds timeout
+        }, 15000); // 15 seconds timeout
     };
 
     const handleSupportSubmit = async () => {
         if (!selectedTier) return;
+
+        if (supportMessage.length > 512) {
+            setSnackbarMessage('Support message must not exceed 512 characters.');
+            setSnackbarSeverity('error');
+            return;
+        }
 
         try {
             const supportData: { supportTierId: number; message?: string } = {
@@ -227,8 +233,11 @@ const PetitionDetails: React.FC = () => {
 
             fetchSupporters(petition!); // Re-fetch supporters
         } catch (error) {
-            console.error('Error supporting petition:', error);
-            setSnackbarMessage('Failed to support the petition.');
+            if (axios.isAxiosError(error) && error.response?.status === 400 && error.response?.data?.includes('data/message must NOT have more than 512 characters')) {
+                setSnackbarMessage('Support message must not exceed 512 characters.');
+            } else {
+                setSnackbarMessage('Failed to support the petition.');
+            }
             setSnackbarSeverity('error');
         }
 
@@ -331,12 +340,15 @@ const PetitionDetails: React.FC = () => {
                                                         value={supportMessage}
                                                         onChange={(e) => setSupportMessage(e.target.value)}
                                                         sx={{ mt: 1 }}
+                                                        error={supportMessage.length > 512}
+                                                        helperText={supportMessage.length > 512 ? 'Support message must not exceed 512 characters.' : ''}
                                                     />
                                                     <Button
                                                         variant="contained"
                                                         color="primary"
                                                         onClick={handleSupportSubmit}
                                                         sx={{ mt: 1 }}
+                                                        disabled={supportMessage.length > 512}
                                                     >
                                                         Confirm Support
                                                     </Button>

@@ -5,11 +5,13 @@ interface FilterBarProps {
     categories: { [key: number]: string };
     selectedCategories: number[];
     setSelectedCategories: React.Dispatch<React.SetStateAction<number[]>>;
-    maxCost: number;
-    setMaxCost: React.Dispatch<React.SetStateAction<number>>;
+    maxCost: string;
+    setMaxCost: React.Dispatch<React.SetStateAction<string>>;
     sortBy: string;
     setSortBy: React.Dispatch<React.SetStateAction<string>>;
 }
+
+const MAX_COST_LIMIT = 9999999; // Set a reasonable upper limit for max cost
 
 const FilterBar: React.FC<FilterBarProps> = ({ categories, selectedCategories, setSelectedCategories, maxCost, setMaxCost, sortBy, setSortBy }) => {
     const handleCategoryChange = (event: SelectChangeEvent<number[]>) => {
@@ -18,25 +20,9 @@ const FilterBar: React.FC<FilterBarProps> = ({ categories, selectedCategories, s
     };
 
     const handleCostChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        setMaxCost(event.target.value === '' ? 0 : Number(event.target.value));
-    };
-
-    const handleCostKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-        const key = event.key;
-        const currentCost = maxCost.toString();
-
-        if (!/^[0-9]$/.test(key) && key !== 'Backspace') {
-            event.preventDefault();
-        }
-
-        if (key === 'Backspace' && currentCost.length === 1) {
-            setMaxCost(0);
-            event.preventDefault();
-        }
-
-        if (maxCost === 0 && /^[0-9]$/.test(key)) {
-            setMaxCost(parseInt(key, 10));
-            event.preventDefault();
+        const value = event.target.value;
+        if (!isNaN(Number(value)) && value === '' || (Number(value) >= 0 && Number(value) <= MAX_COST_LIMIT)) {
+            setMaxCost(value);
         }
     };
 
@@ -69,10 +55,15 @@ const FilterBar: React.FC<FilterBarProps> = ({ categories, selectedCategories, s
                 type="number"
                 value={maxCost}
                 onChange={handleCostChange}
-                onKeyDown={handleCostKeyDown}
+                onKeyPress={(event) => {
+                    if (!/[0-9]/.test(event.key)) {
+                        event.preventDefault();
+                    }
+                }}
                 sx={{ width: 200 }}
-                InputProps={{
-                    inputProps: { min: 0 }
+                inputProps={{
+                    min: 0,
+                    max: MAX_COST_LIMIT,
                 }}
             />
             <FormControl variant="outlined" sx={{ minWidth: 200 }}>

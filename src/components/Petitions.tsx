@@ -58,7 +58,7 @@ const Petitions: React.FC = () => {
     const [categories, setCategories] = useState<{ [key: number]: string }>({});
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
-    const [maxCost, setMaxCost] = useState<number>(0);
+    const [maxCost, setMaxCost] = useState<string>('');
     const [sortBy, setSortBy] = useState<string>('CREATED_ASC');
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPetitions, setTotalPetitions] = useState(0);
@@ -107,8 +107,8 @@ const Petitions: React.FC = () => {
             if (selectedCategories.length > 0) {
                 params.categoryIds = selectedCategories;
             }
-            if (maxCost > 0) {
-                params.supportingCost = maxCost;
+            if (maxCost !== '') {
+                params.supportingCost = parseFloat(maxCost);
             }
 
             const petitionsResponse = await axios.get(`${API_HOST}/petitions`, { params });
