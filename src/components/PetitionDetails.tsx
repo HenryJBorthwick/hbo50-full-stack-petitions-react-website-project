@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -83,20 +83,10 @@ const PetitionDetails: React.FC = () => {
     const [snackbarMessage, setSnackbarMessage] = useState('');
     const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
     const { user } = useUserStore();
-    const supportBoxRef = useRef<HTMLDivElement | null>(null);
-    const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     useEffect(() => {
         fetchPetitionDetails();
     }, [id]);
-
-    useEffect(() => {
-        return () => {
-            if (timeoutRef.current) {
-                clearTimeout(timeoutRef.current);
-            }
-        };
-    }, []);
 
     const fetchPetitionDetails = async () => {
         try {
@@ -197,13 +187,6 @@ const PetitionDetails: React.FC = () => {
         }
         setSelectedTier(tier);
         setSupportMessage(''); // Reset support message when selecting a tier
-
-        if (timeoutRef.current) {
-            clearTimeout(timeoutRef.current);
-        }
-        timeoutRef.current = setTimeout(() => {
-            setSelectedTier(null);
-        }, 15000); // 15 seconds timeout
     };
 
     const handleSupportSubmit = async () => {
@@ -239,10 +222,6 @@ const PetitionDetails: React.FC = () => {
                 setSnackbarMessage('Failed to support the petition.');
             }
             setSnackbarSeverity('error');
-        }
-
-        if (timeoutRef.current) {
-            clearTimeout(timeoutRef.current);
         }
     };
 
@@ -325,7 +304,7 @@ const PetitionDetails: React.FC = () => {
                         <Grid container spacing={2} direction="column" alignItems="center">
                             {petition.supportTiers.map(tier => (
                                 <Grid item xs={12} key={tier.supportTierId} sx={{ width: '100%' }}>
-                                    <Card sx={{ height: '100%' }} ref={supportBoxRef}>
+                                    <Card sx={{ height: '100%' }} >
                                         <CardContent>
                                             <Typography variant="body1">{tier.title}</Typography>
                                             <Typography variant="body2" color="textSecondary">
