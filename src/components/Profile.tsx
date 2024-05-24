@@ -174,7 +174,11 @@ const Profile: React.FC = () => {
                         }
                         break;
                     case 403:
-                        setError('Email already in use. Please use a different email.');
+                        if (statusText.includes("New password can not be the same as old password")) {
+                            setError('New password can not be the same as old password.');
+                        } else {
+                            setError('Email already in use. Please use a different email.');
+                        }
                         break;
                     case 413:
                         setError('The uploaded image is too large. Please upload an image smaller than 5MB.');

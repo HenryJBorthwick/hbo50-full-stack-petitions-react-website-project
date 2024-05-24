@@ -41,7 +41,6 @@ const NavigationBar: React.FC = () => {
                 } catch (error: unknown) {
                     if (axios.isAxiosError(error)) {
                         if (error.response && error.response.status === 404 && retries > 0) {
-                            // Retry after a delay if 404 is encountered
                             setTimeout(() => fetchProfileImage(retries - 1, delay), delay);
                         } else {
                             console.error('Failed to fetch profile image:', error);
@@ -73,6 +72,7 @@ const NavigationBar: React.FC = () => {
                     'X-Authorization': user?.token,
                 },
             });
+            localStorage.clear(); // Clear all local storage items on logout
             setUser(null);
             navigate('/login');
         } catch (error) {

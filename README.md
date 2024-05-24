@@ -1,5 +1,11 @@
 # React + TypeScript + Vite
 
+### Important Information
+
+- **Main Page URL:** `/petitions`
+- **Troubleshooting:**
+    - Clear your browser local/session/cookie/shared/cache storage if it thinks you are logged in when you first open the app.
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:
