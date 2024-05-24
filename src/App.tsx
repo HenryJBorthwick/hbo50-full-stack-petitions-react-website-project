@@ -1,5 +1,5 @@
 import './app.css';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import Register from './components/Register';
 import LogIn from './components/Login.tsx';
 import Petitions from './components/Petitions.tsx';
@@ -23,6 +23,8 @@ function App() {
                     <Route path="/edit/:id" element={<RequireAuth><EditPetition /></RequireAuth>} />
                     <Route path="/my-petitions" element={<RequireAuth><MyPetitions /></RequireAuth>} />
                     <Route path="/profile" element={<RequireAuth><Profile /></RequireAuth>} />
+                    <Route path="/" element={<Navigate to="/petitions" />} />
+                    <Route path="*" element={<Navigate to="/petitions" />} />
                 </Routes>
             </Router>
         </div>
