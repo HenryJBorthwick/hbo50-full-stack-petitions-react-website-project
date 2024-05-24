@@ -1,6 +1,22 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { TextField, Button, Typography, MenuItem, Select, FormControl, InputLabel, Paper, Container, CssBaseline, ThemeProvider, createTheme, Grid, Alert } from '@mui/material';
+import {
+    TextField,
+    Button,
+    Typography,
+    MenuItem,
+    Select,
+    FormControl,
+    InputLabel,
+    Paper,
+    Container,
+    CssBaseline,
+    ThemeProvider,
+    createTheme,
+    Grid,
+    Alert,
+    Box
+} from '@mui/material';
 import axios from 'axios';
 import { API_HOST } from '../../config';
 import { useUserStore } from '../store';
@@ -300,7 +316,7 @@ const EditPetition: React.FC = () => {
                         {supportTiers.map((tier, index) => (
                             <Grid item xs={12} key={index}>
                                 <Paper sx={{ p: 2 }}>
-                                    <Typography variant="h6">Support Tier {index + 1}</Typography>
+                                    <Typography variant="h6" align="center">Support Tier {index + 1}</Typography>
                                     <TextField
                                         label="Title"
                                         fullWidth
@@ -331,14 +347,16 @@ const EditPetition: React.FC = () => {
                                         }}
                                         disabled={!!supporters[tier.supportTierId]}
                                     />
-                                    <Button
-                                        variant="contained"
-                                        color="secondary"
-                                        onClick={() => handleRemoveTier(index)}
-                                        disabled={supportTiers.length === 1 || !!supporters[tier.supportTierId]}
-                                    >
-                                        Remove Tier
-                                    </Button>
+                                    <Box display="flex" justifyContent="center">
+                                        <Button
+                                            variant="contained"
+                                            color="secondary"
+                                            onClick={() => handleRemoveTier(index)}
+                                            disabled={supportTiers.length === 1 || !!supporters[tier.supportTierId]}
+                                        >
+                                            Remove Tier
+                                        </Button>
+                                    </Box>
                                     {supporters[tier.supportTierId] > 0 && (
                                         <Alert severity="info" sx={{ mb: 1 }}>
                                             This tier has been supported and cannot be edited.
@@ -347,17 +365,17 @@ const EditPetition: React.FC = () => {
                                 </Paper>
                             </Grid>
                         ))}
-                        <Grid item xs={12}>
+                        <Grid item xs={12} container justifyContent="center">
                             <Button variant="contained" onClick={handleAddTier} disabled={supportTiers.length >= 3}>
                                 Add Support Tier
                             </Button>
                         </Grid>
-                        <Grid item xs={12}>
+                        <Grid item xs={12} container justifyContent="center" >
                             <Button onClick={handleUpdate} variant="contained" color="primary">
                                 Update Petition
                             </Button>
                         </Grid>
-                        <Grid item xs={12}>
+                        <Grid item xs={12} container justifyContent="center" >
                             {error && <Alert severity="error">{error}</Alert>}
                         </Grid>
                     </Grid>

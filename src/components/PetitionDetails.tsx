@@ -84,21 +84,19 @@ const PetitionDetails: React.FC = () => {
     const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
     const { user } = useUserStore();
     const supportBoxRef = useRef<HTMLDivElement | null>(null);
+    const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     useEffect(() => {
         fetchPetitionDetails();
+    }, [id]);
 
-        const handleClickOutside = (event: MouseEvent) => {
-            if (supportBoxRef.current && !supportBoxRef.current.contains(event.target as Node)) {
-                setSelectedTier(null);
+    useEffect(() => {
+        return () => {
+            if (timeoutRef.current) {
+                clearTimeout(timeoutRef.current);
             }
         };
-
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, [id]);
+    }, []);
 
     const fetchPetitionDetails = async () => {
         try {
@@ -193,6 +191,14 @@ const PetitionDetails: React.FC = () => {
             return;
         }
         setSelectedTier(tier);
+        setSupportMessage(''); // Reset support message when selecting a tier
+
+        if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+        }
+        timeoutRef.current = setTimeout(() => {
+            setSelectedTier(null);
+        }, 3000); // 3 seconds timeout
     };
 
     const handleSupportSubmit = async () => {
@@ -219,6 +225,10 @@ const PetitionDetails: React.FC = () => {
             console.error('Error supporting petition:', error);
             setSnackbarMessage('Failed to support the petition.');
             setSnackbarSeverity('error');
+        }
+
+        if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
         }
     };
 

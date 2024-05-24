@@ -1,4 +1,4 @@
-import './App.css';
+import './app.css';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import Register from './components/Register';
 import LogIn from './components/Login.tsx';
@@ -12,20 +12,18 @@ import RequireAuth from './components/RequireAuth';
 
 function App() {
     return (
-        <div className="App">
+        <div id="root" className="App">
             <Router>
-                <div>
-                    <Routes>
-                        <Route path="/register" element={<Register />} />
-                        <Route path="/login" element={<LogIn />} />
-                        <Route path="/petitions" element={<Petitions />} />
-                        <Route path="/petition/:id" element={<PetitionDetails />} />
-                        <Route path="/create" element={<RequireAuth><CreatePetition /></RequireAuth>} />
-                        <Route path="/edit/:id" element={<RequireAuth><EditPetition /></RequireAuth>} />
-                        <Route path="/my-petitions" element={<RequireAuth><MyPetitions /></RequireAuth>} />
-                        <Route path="/profile" element={<RequireAuth><Profile /></RequireAuth>} />
-                    </Routes>
-                </div>
+                <Routes>
+                    <Route path="/register" element={<Register />} />
+                    <Route path="/login" element={<LogIn />} />
+                    <Route path="/petitions" element={<Petitions />} />
+                    <Route path="/petition/:id" element={<PetitionDetails />} />
+                    <Route path="/create" element={<RequireAuth><CreatePetition /></RequireAuth>} />
+                    <Route path="/edit/:id" element={<RequireAuth><EditPetition /></RequireAuth>} />
+                    <Route path="/my-petitions" element={<RequireAuth><MyPetitions /></RequireAuth>} />
+                    <Route path="/profile" element={<RequireAuth><Profile /></RequireAuth>} />
+                </Routes>
             </Router>
         </div>
     );

@@ -1,5 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { TextField, Button, MenuItem, Typography, Paper, Grid, Container, CssBaseline, ThemeProvider, createTheme, Alert } from '@mui/material';
+import {
+    TextField,
+    Button,
+    MenuItem,
+    Typography,
+    Paper,
+    Grid,
+    Container,
+    CssBaseline,
+    ThemeProvider,
+    createTheme,
+    Alert,
+    Box
+} from '@mui/material';
 import axios from 'axios';
 import { API_HOST } from '../../config';
 import { useUserStore } from '../store';
@@ -270,7 +283,7 @@ const CreatePetition: React.FC = () => {
                         {supportTiers.map((tier, index) => (
                             <Grid item xs={12} key={index}>
                                 <Paper sx={{ p: 2 }}>
-                                    <Typography variant="h6">Support Tier {index + 1}</Typography>
+                                    <Typography variant="h6" align="center">Support Tier {index + 1}</Typography>
                                     <TextField
                                         label="Title"
                                         fullWidth
@@ -304,23 +317,25 @@ const CreatePetition: React.FC = () => {
                                             inputProps: { min: 0, max: MAX_COST }
                                         }}
                                     />
-                                    <Button
-                                        variant="contained"
-                                        color="secondary"
-                                        onClick={() => handleRemoveTier(index)}
-                                        disabled={supportTiers.length === 1}
-                                    >
-                                        Remove Tier
-                                    </Button>
+                                    <Box display="flex" justifyContent="center">
+                                        <Button
+                                            variant="contained"
+                                            color="secondary"
+                                            onClick={() => handleRemoveTier(index)}
+                                            disabled={supportTiers.length === 1}
+                                        >
+                                            Remove Tier
+                                        </Button>
+                                    </Box>
                                 </Paper>
                             </Grid>
                         ))}
-                        <Grid item xs={12}>
+                        <Grid item xs={12} container justifyContent="center">
                             <Button variant="contained" onClick={handleAddTier} disabled={supportTiers.length >= 3}>
                                 Add Support Tier
                             </Button>
                         </Grid>
-                        <Grid item xs={12}>
+                        <Grid item xs={12} container justifyContent="center">
                             <Button
                                 variant="contained"
                                 component="label"
@@ -335,7 +350,7 @@ const CreatePetition: React.FC = () => {
                             </Button>
                             {image && <Typography>{image.name}</Typography>}
                         </Grid>
-                        <Grid item xs={12}>
+                        <Grid item xs={12} container justifyContent="center">
                             <Button onClick={handleSubmit} variant="contained" color="primary">
                                 Create Petition
                             </Button>

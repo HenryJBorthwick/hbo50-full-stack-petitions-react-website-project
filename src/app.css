@@ -1,0 +1,17 @@
+/* Set the default fixed width and ensure it stretches to the top */
+#root {
+    width: 100%;
+    margin: 0 auto; /* Center the div */
+    min-height: 100vh; /* Ensure it stretches to the top */
+    display: flex;
+    flex-direction: column; /* Ensure child elements stack vertically */
+}
+
+
+/* Responsive design for smaller screens */
+@media (max-width: 1280px) {
+    #root {
+        width: 100%;
+        padding: 0 10px; /* Add some padding to avoid touching screen edges */
+    }
+}
