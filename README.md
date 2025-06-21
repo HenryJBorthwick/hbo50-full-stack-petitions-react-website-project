@@ -1,6 +1,8 @@
 # seng365-hbo50-assignment2
 
+# Overview
 
+Full Stack Petitions React Website Project for Web Computing Architectures. Uses React, Typescript, JSX, Axios, Zustand, NPM. [Link to project recordings](https://drive.google.com/drive/folders/1l3dRC8Xoe5sIWdJNtHJkqTVCakvrLaIG?usp=drive_link)
 
 ## Getting started
 
